@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# [2.2.1] - 2021-01-27
+### Changed
+- Bugfixes
+- Change CLI arg tag for fan modes
+- Make dracut include the nvidia modules in initramfs
+
+# [2.2.0] - 2021-01-26
+### Added
+- Add ROG Zephyrus M15 LED config
+### Changed
+- Fix reboot/restartx status for GFX switching
+- Update readme
+
 # [2.2.0] - 2021-01-26
 ### Added
 - Dbus command to fetch all supported functions of the laptop. That is, all the
@@ -13,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bios setting toggles for:
   + Dedicated gfx toggle (support depends on the laptop)
   + Bios boot POST sound toggle
-
 ### Changed
 - added config option for dedicated gfx mode on laptops with it to enable
   switching directly to dedicated using `asusctl graphics -m nvidia`
