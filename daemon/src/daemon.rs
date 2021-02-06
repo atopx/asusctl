@@ -3,17 +3,18 @@ use daemon::ctrl_fan_cpu::{CtrlFanAndCPU, DbusFanAndCpu};
 use daemon::ctrl_leds::{CtrlKbdBacklight, DbusKbdBacklight};
 use daemon::laptops::match_laptop;
 use daemon::{
-    config::Config, laptops::print_board_info, supported::SupportedFunctions, GetSupported,
+    config::Config, laptops::print_board_info, ctrl_supported::SupportedFunctions, GetSupported,
 };
 use daemon::{
     ctrl_anime::CtrlAnimeDisplay,
-    ctrl_gfx::{gfx::CtrlGraphics, vendors::GfxVendors},
+    ctrl_gfx::{gfx::CtrlGraphics},
 };
 
 use rog_dbus::DBUS_NAME;
 use daemon::{CtrlTask, Reloadable, ZbusAdd};
 use log::LevelFilter;
 use log::{error, info, warn};
+use rog_types::gfx_vendors::GfxVendors;
 use std::error::Error;
 use std::io::Write;
 use std::sync::Arc;
@@ -141,8 +142,7 @@ fn start_daemon() -> Result<(), Box<dyn Error>> {
         ctrl.reload()
             .unwrap_or_else(|err| warn!("Profile control: {}", err));
         let tmp = Arc::new(Mutex::new(ctrl));
-        DbusFanAndCpu::new(tmp.clone()).add_to_server(&mut object_server);
-        tasks.push(tmp);
+        DbusFanAndCpu::new(tmp).add_to_server(&mut object_server);
     };
 
     if let Some(laptop) = laptop {

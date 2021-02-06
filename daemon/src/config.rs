@@ -18,7 +18,6 @@ struct ConfigV212 {
     active_profile: String,
     toggle_profiles: Vec<String>,
     power_profiles: BTreeMap<String, Profile>,
-    // TODO: remove power_profile
     power_profile: u8,
     kbd_led_brightness: u8,
     kbd_backlight_mode: u8,
@@ -32,7 +31,7 @@ impl ConfigV212 {
             gfx_nv_mode_is_dedicated: true,
             active_profile: self.active_profile,
             toggle_profiles: self.toggle_profiles,
-            power_profile: self.power_profile,
+            curr_fan_mode: self.power_profile,
             bat_charge_limit: self.bat_charge_limit,
             kbd_led_brightness: self.kbd_led_brightness,
             kbd_backlight_mode: self.kbd_backlight_mode,
@@ -42,19 +41,73 @@ impl ConfigV212 {
     }
 }
 
-#[derive(Default, Deserialize, Serialize)]
+/// for parsing old v2.2.2 config
+#[derive(Deserialize)]
+struct ConfigV222 {
+    gfx_managed: bool,
+    bat_charge_limit: u8,
+    active_profile: String,
+    toggle_profiles: Vec<String>,
+    power_profiles: BTreeMap<String, Profile>,
+    power_profile: u8,
+    kbd_led_brightness: u8,
+    kbd_backlight_mode: u8,
+    kbd_backlight_modes: Vec<AuraModes>,
+}
+
+impl ConfigV222 {
+    fn into_current(self) -> Config {
+        Config {
+            gfx_managed: self.gfx_managed,
+            gfx_nv_mode_is_dedicated: true,
+            active_profile: self.active_profile,
+            toggle_profiles: self.toggle_profiles,
+            curr_fan_mode: self.power_profile,
+            bat_charge_limit: self.bat_charge_limit,
+            kbd_led_brightness: self.kbd_led_brightness,
+            kbd_backlight_mode: self.kbd_backlight_mode,
+            kbd_backlight_modes: self.kbd_backlight_modes,
+            power_profiles: self.power_profiles,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     pub gfx_managed: bool,
     pub gfx_nv_mode_is_dedicated: bool,
     pub active_profile: String,
     pub toggle_profiles: Vec<String>,
     // TODO: remove power_profile
-    pub power_profile: u8,
+    #[serde(skip)]
+    pub curr_fan_mode: u8,
     pub bat_charge_limit: u8,
     pub kbd_led_brightness: u8,
     pub kbd_backlight_mode: u8,
     pub kbd_backlight_modes: Vec<AuraModes>,
     pub power_profiles: BTreeMap<String, Profile>,
+}
+
+impl  Default for Config {
+    fn default() -> Self {
+        let mut pwr = BTreeMap::new();
+        pwr.insert("normal".into(), Profile::new(0, 100, true, 0, None));
+        pwr.insert("boost".into(), Profile::new(0, 100, true, 1, None));
+        pwr.insert("silent".into(), Profile::new(0, 100, true, 2, None));
+
+        Config {
+            gfx_managed: true,
+            gfx_nv_mode_is_dedicated: true,
+            active_profile: "normal".into(),
+            toggle_profiles: vec!["normal".into(), "boost".into(), "silent".into()],
+            curr_fan_mode: 0,
+            bat_charge_limit:100,
+            kbd_led_brightness: 1,
+            kbd_backlight_mode: 0,
+            kbd_backlight_modes: Vec::new(),
+            power_profiles: pwr,
+        }
+    }
 }
 
 impl Config {
@@ -76,6 +129,11 @@ impl Config {
             } else {
                 if let Ok(data) = serde_json::from_str(&buf) {
                     return data;
+                } else if let Ok(data) = serde_json::from_str::<ConfigV222>(&buf) {
+                    let config = data.into_current();
+                    config.write();
+                    info!("Updated config version to: {}", VERSION);
+                    return config;
                 } else if let Ok(data) = serde_json::from_str::<ConfigV212>(&buf) {
                     let config = data.into_current();
                     config.write();
@@ -92,35 +150,10 @@ impl Config {
     fn create_default(file: &mut File, supported_led_modes: &[u8]) -> Self {
         // create a default config here
         let mut config = Config::default();
-        config.gfx_managed = true;
-        config.gfx_nv_mode_is_dedicated = true;
-
-        config.bat_charge_limit = 100;
-        config.kbd_backlight_mode = 0;
-        config.kbd_led_brightness = 1;
 
         for n in supported_led_modes {
             config.kbd_backlight_modes.push(AuraModes::from(*n))
         }
-
-        let mut profile = Profile::default();
-        profile.fan_preset = 0;
-        profile.turbo = true;
-        config.power_profiles.insert("normal".into(), profile);
-
-        let mut profile = Profile::default();
-        profile.fan_preset = 1;
-        profile.turbo = true;
-        config.power_profiles.insert("boost".into(), profile);
-
-        let mut profile = Profile::default();
-        profile.fan_preset = 2;
-        config.power_profiles.insert("silent".into(), profile);
-
-        config.toggle_profiles.push("normal".into());
-        config.toggle_profiles.push("boost".into());
-        config.toggle_profiles.push("silent".into());
-        config.active_profile = "normal".into();
 
         // Should be okay to unwrap this as is since it is a Default
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -205,6 +238,20 @@ impl Default for Profile {
             turbo: false,
             fan_preset: 0,
             fan_curve: None,
+        }
+    }
+}
+
+impl Profile {
+    pub fn new(min_percentage: u8, max_percentage: u8, turbo: bool,
+    fan_preset: u8, fan_curve: Option<Curve>) -> Self {
+        Profile {
+            min_percentage,
+            max_percentage,
+            turbo,
+            fan_preset,
+            fan_curve,
+
         }
     }
 }

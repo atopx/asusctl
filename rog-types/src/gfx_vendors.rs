@@ -8,12 +8,12 @@ pub enum GfxVendors {
 
 use std::str::FromStr;
 
-use super::error::GfxError;
+use crate::error::GraphicsError;
 
 impl FromStr for GfxVendors {
-    type Err = GfxError;
+    type Err = GraphicsError;
 
-    fn from_str(s: &str) -> Result<Self, GfxError> {
+    fn from_str(s: &str) -> Result<Self, GraphicsError> {
         match s.to_lowercase().as_str() {
             "nvidia" => Ok(GfxVendors::Nvidia),
             "hybrid" => Ok(GfxVendors::Hybrid),
@@ -23,7 +23,7 @@ impl FromStr for GfxVendors {
             "hybrid\n" => Ok(GfxVendors::Hybrid),
             "compute\n" => Ok(GfxVendors::Compute),
             "integrated\n" => Ok(GfxVendors::Integrated),
-            _ => Err(GfxError::ParseVendor),
+            _ => Err(GraphicsError::ParseVendor),
         }
     }
 }
@@ -47,14 +47,14 @@ pub enum GfxCtrlAction {
 }
 
 impl FromStr for GfxCtrlAction {
-    type Err = GfxError;
+    type Err = GraphicsError;
 
-    fn from_str(s: &str) -> Result<Self, GfxError> {
+    fn from_str(s: &str) -> Result<Self, GraphicsError> {
         match s.to_lowercase().as_str() {
             "reboot" => Ok(GfxCtrlAction::Reboot),
             "restartx" => Ok(GfxCtrlAction::RestartX),
             "none" => Ok(GfxCtrlAction::None),
-            _ => Err(GfxError::ParseVendor),
+            _ => Err(GraphicsError::ParseVendor),
         }
     }
 }
