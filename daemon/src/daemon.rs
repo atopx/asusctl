@@ -142,8 +142,7 @@ fn start_daemon() -> Result<(), Box<dyn Error>> {
         ctrl.reload()
             .unwrap_or_else(|err| warn!("Profile control: {}", err));
         let tmp = Arc::new(Mutex::new(ctrl));
-        DbusFanAndCpu::new(tmp.clone()).add_to_server(&mut object_server);
-        tasks.push(tmp);
+        DbusFanAndCpu::new(tmp).add_to_server(&mut object_server);
     };
 
     if let Some(laptop) = laptop {
