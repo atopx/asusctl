@@ -3,7 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 use zbus::dbus_interface;
 
 use crate::{
-    ctrl_anime::{AnimeSupportedFunctions, CtrlAnimeDisplay},
+    ctrl_anime::anime::{AniMeSupportedFunctions, CtrlAniMeDisplay},
     ctrl_charge::{ChargeSupportedFunctions, CtrlCharge},
     ctrl_fan_cpu::{CtrlFanAndCPU, FanCpuSupportedFunctions},
     ctrl_leds::{CtrlKbdBacklight, LedSupportedFunctions},
@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize)]
 pub struct SupportedFunctions {
-    pub anime_ctrl: AnimeSupportedFunctions,
+    pub anime_ctrl: AniMeSupportedFunctions,
     pub charge_ctrl: ChargeSupportedFunctions,
     pub fan_cpu_ctrl: FanCpuSupportedFunctions,
     pub keyboard_led: LedSupportedFunctions,
@@ -45,7 +45,7 @@ impl GetSupported for SupportedFunctions {
     fn get_supported() -> Self::A {
         SupportedFunctions {
             keyboard_led: CtrlKbdBacklight::get_supported(),
-            anime_ctrl: CtrlAnimeDisplay::get_supported(),
+            anime_ctrl: CtrlAniMeDisplay::get_supported(),
             charge_ctrl: CtrlCharge::get_supported(),
             fan_cpu_ctrl: CtrlFanAndCPU::get_supported(),
             rog_bios_ctrl: CtrlRogBios::get_supported(),

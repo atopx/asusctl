@@ -19,7 +19,7 @@
 //!
 //! …consequently `zbus-xmlgen` did not generate code for the above interfaces.
 
-use rog_types::anime_matrix::{AniMeDataBuffer, AniMeImageBuffer};
+use rog_types::anime_matrix::{AniMePaneBuffer, AniMeImageBuffer};
 use zbus::{dbus_proxy, Connection, Result};
 
 #[dbus_proxy(
@@ -34,10 +34,10 @@ trait Daemon {
     fn set_on_off(&self, status: bool) -> zbus::Result<()>;
 
     /// WriteDirect method
-    fn write_direct(&self, input: &[u8]) -> zbus::Result<()>;
+    fn write_pane(&self, pane : &[u8]) -> zbus::Result<()>;
 
     /// WriteImage method
-    fn write_image(&self, input: &[Vec<u8>]) -> zbus::Result<()>;
+    fn write_image(&self, image : &[Vec<u8>]) -> zbus::Result<()>;
 }
 
 pub struct AnimeProxy<'a>(DaemonProxy<'a>);
@@ -63,8 +63,8 @@ impl<'a> AnimeProxy<'a> {
     }
 
     #[inline]
-    pub fn write_direct(&self, input: AniMeDataBuffer) -> Result<()> {
-        self.0.write_direct(input.get())
+    pub fn write_pane(&self, pane : AniMePaneBuffer) -> Result<()> {
+        self.0.write_pane(pane.get())
     }
 
     #[inline]

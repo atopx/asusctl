@@ -5,9 +5,9 @@ use daemon::{
 use gumdrop::{Opt, Options};
 use rog_dbus::AuraDbusClient;
 use rog_types::{
-    anime_matrix::{AniMeDataBuffer, FULL_PANE_LEN},
+    anime_matrix::{AniMeStatusValue, AniMeCommandType, AniMeWriteType},
     aura_modes::AuraModes,
-    cli_options::{AniMeActions, AniMeStatusValue, LedBrightness, SetAuraBuiltin},
+    cli_options::{LedBrightness, SetAuraBuiltin},
     gfx_vendors::GfxVendors,
     profile::{FanLevel, ProfileCommand, ProfileEvent},
 };
@@ -88,10 +88,13 @@ struct AniMeCommand {
         help = "turn on/off the panel (accept/reject write requests)"
     )]
     turn: Option<AniMeStatusValue>,
-    #[options(meta = "", help = "turn on/off the panel at boot (with Asus effect)")]
+    #[options(
+        meta = "",
+        help = "turn on/off the panel at boot (with Asus effect)"
+    )]
     boot: Option<AniMeStatusValue>,
     #[options(command)]
-    command: Option<AniMeActions>,
+    command: Option<AniMeCommandType>,
 }
 
 #[derive(Options, Debug)]
@@ -162,18 +165,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("\n{}", lst);
                 }
             }
-            if let Some(anime_turn) = cmd.turn {
-                dbus.proxies().anime().toggle_on(anime_turn.into())?
-            }
-            if let Some(anime_boot) = cmd.boot {
-                dbus.proxies().anime().toggle_boot_on(anime_boot.into())?
-            }
-            if let Some(action) = cmd.command {
-                match action {
-                    AniMeActions::Leds(anime_leds) => {
-                        let mut data = AniMeDataBuffer::new();
-                        data.set([anime_leds.led_brightness(); FULL_PANE_LEN]);
-                        dbus.proxies().anime().write_direct(data)?;
+            else {
+                if let Some(anime_turn) = cmd.turn {
+                    dbus.proxies().anime().toggle_on(anime_turn.into())?
+                }
+                if let Some(anime_boot) = cmd.boot {
+                    dbus.proxies().anime().toggle_boot_on(anime_boot.into())?
+                }
+                if let Some(anime_command) = cmd.command {
+                    match AniMeWriteType::from(anime_command) {
+                        AniMeWriteType::WritePane(pane) => {
+                            dbus.proxies().anime().write_pane(pane.into())?;
+                        }
                     }
                 }
             }

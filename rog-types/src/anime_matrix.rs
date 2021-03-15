@@ -1,5 +1,120 @@
+use gumdrop::Options;
 use serde_derive::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::str::FromStr;
 use zvariant_derive::Type;
+
+use crate::error::AuraError;
+
+
+pub const PANE_LEN : usize = 1214;
+
+
+pub type AniMePane = [u8; PANE_LEN];
+impl From<AniMePaneBuffer> for AniMePane {
+    fn from(pane_buffer : AniMePaneBuffer) -> Self {
+        assert!(pane_buffer.0.len() == PANE_LEN);
+        let mut pane : Self = [0u8; PANE_LEN];
+        for i in 0..PANE_LEN {
+            pane[i] = pane_buffer.0[i];
+        }
+        pane
+    }
+}
+
+// AniMePaneBuffer should only be used by zbus,
+// Avoid using it somewhere else and prefer using AniMePane instead
+#[derive(Deserialize, Serialize, Type)]
+pub struct AniMePaneBuffer(Vec<u8>);
+impl From<AniMePane> for AniMePaneBuffer {
+    fn from(pane: AniMePane) -> Self {
+        AniMePaneBuffer(pane.to_vec())
+    }
+}
+impl AniMePaneBuffer {
+    pub fn get(&self) -> &Vec<u8> {
+        &self.0
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+#[derive(Deserialize, Serialize, Type)]
+pub enum AniMeStatusValue {
+    On,
+    Off,
+}
+impl FromStr for AniMeStatusValue {
+    type Err = AuraError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+        match s.as_str() {
+            "on" => Ok(AniMeStatusValue::On),
+            "off" => Ok(AniMeStatusValue::Off),
+            _ => {
+                print!("Invalid argument, must be one of: on, off");
+                Err(AuraError::ParseAnime)
+            }
+        }
+    }
+}
+impl From<AniMeStatusValue> for bool {
+    fn from(value: AniMeStatusValue) -> Self {
+        match value {
+            AniMeStatusValue::On => true,
+            AniMeStatusValue::Off => false,
+        }
+    }
+}
+impl Display for AniMeStatusValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>)
+           -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", if bool::from(*self) { "on" } else { "off" })
+    }
+}
+
+#[derive(Options)]
+pub struct AniMeLeds {
+    #[options(help = "print help message")]
+    help: bool,
+    #[options(
+        no_long,
+        required,
+        short = "b",
+        meta = "",
+        help = "set all leds brightness value"
+    )]
+    led_brightness: u8,
+}
+impl AniMeLeds {
+    pub fn led_brightness(&self) -> u8 {
+        self.led_brightness
+    }
+}
+
+#[derive(Options)]
+pub enum AniMeCommandType {
+    #[options(help = "change all leds brightness")]
+    Leds(AniMeLeds),
+}
+
+pub enum AniMeWriteType {
+    WritePane(AniMePane),
+}
+impl From<AniMeCommandType> for AniMeWriteType {
+    fn from(command : AniMeCommandType) -> Self {
+        match command {
+            AniMeCommandType::Leds(leds) => {
+                Self::WritePane([leds.led_brightness; PANE_LEN])
+            }
+        }
+    }
+}
+
+
+
+
+// All after this line should be removed
 
 pub const WIDTH: usize = 34; // Width is definitely 34 items
 pub const HEIGHT: usize = 56;
@@ -7,47 +122,8 @@ pub type AniMePacketType = [[u8; 640]; 2];
 const BLOCK_START: usize = 7;
 /// *Not* inclusive, the byte before this is the final for each "pane"
 const BLOCK_END: usize = 634;
-pub const PANE_LEN: usize = BLOCK_END - BLOCK_START;
 /// The length of usable data
-pub const FULL_PANE_LEN: usize = PANE_LEN * 2;
-
-pub const ANIME_PANE1_PREFIX: [u8; 7] = [0x5e, 0xc0, 0x02, 0x01, 0x00, 0x73, 0x02];
-pub const ANIME_PANE2_PREFIX: [u8; 7] = [0x5e, 0xc0, 0x02, 0x74, 0x02, 0x73, 0x02];
-
-#[derive(Debug, Deserialize, Serialize, Type)]
-pub struct AniMeDataBuffer(Vec<u8>);
-
-impl Default for AniMeDataBuffer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AniMeDataBuffer {
-    pub fn new() -> Self {
-        AniMeDataBuffer(vec![0u8; FULL_PANE_LEN])
-    }
-
-    pub fn get(&self) -> &[u8] {
-        &self.0
-    }
-
-    pub fn set(&mut self, input: [u8; FULL_PANE_LEN]) {
-        self.0 = input.to_vec();
-    }
-}
-
-impl From<AniMeDataBuffer> for AniMePacketType {
-    #[inline]
-    fn from(anime: AniMeDataBuffer) -> Self {
-        assert!(anime.0.len() == FULL_PANE_LEN);
-        let mut buffers = [[0; 640]; 2];
-        for (idx, chunk) in anime.0.as_slice().chunks(PANE_LEN).enumerate() {
-            buffers[idx][BLOCK_START..BLOCK_END].copy_from_slice(chunk);
-        }
-        buffers
-    }
-}
+pub const FULL_PANE_LEN: usize = (BLOCK_END - BLOCK_START) * 2;
 
 /// Helper structure for writing images.
 ///
@@ -195,6 +271,7 @@ impl From<AniMeImageBuffer> for AniMePacketType {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::anime_matrix::*;
@@ -289,3 +366,4 @@ mod tests {
         );
     }
 }
+*/

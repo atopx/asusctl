@@ -5,7 +5,7 @@ use daemon::laptops::match_laptop;
 use daemon::{
     config::Config, ctrl_supported::SupportedFunctions, laptops::print_board_info, GetSupported,
 };
-use daemon::{ctrl_anime::CtrlAnimeDisplay, ctrl_gfx::gfx::CtrlGraphics};
+use daemon::{ctrl_anime::anime::CtrlAniMeDisplay, ctrl_gfx::gfx::CtrlGraphics};
 
 use daemon::{CtrlTask, Reloadable, ZbusAdd};
 use log::LevelFilter;
@@ -93,7 +93,7 @@ fn start_daemon() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    match CtrlAnimeDisplay::new() {
+    match CtrlAniMeDisplay::new() {
         Ok(ctrl) => {
             ctrl.add_to_server(&mut object_server);
         }
