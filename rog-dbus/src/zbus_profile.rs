@@ -41,6 +41,9 @@ trait Daemon {
     /// Profiles method
     fn profiles(&self) -> zbus::Result<String>;
 
+    /// ProfileNames method
+    fn profile_names(&self) -> zbus::Result<String>;
+
     /// SetProfile method
     fn set_profile(&self, profile: &str) -> zbus::Result<()>;
 
@@ -80,6 +83,12 @@ impl<'a> ProfileProxy<'a> {
     #[inline]
     pub fn write_command(&self, cmd: &ProfileEvent) -> Result<()> {
         self.0.set_profile(&serde_json::to_string(cmd).unwrap())
+    }
+
+    #[inline]
+    pub fn profile_names(&self) -> Result<String> {
+        let profile_names = self.0.profile_names().expect("Failed to get profile names");
+        Ok(profile_names)
     }
 
     #[inline]

@@ -129,6 +129,26 @@ impl DbusFanAndCpu {
 
     #[dbus_interface(signal)]
     fn notify_profile(&self, profile: &str) -> zbus::Result<()> {}
+
+    //#[dbus_interface(name = "ProfileNames")]
+    fn profile_names(&self) -> String {
+        if let Ok(ctrl) = self.inner.try_lock() {
+            if let Ok(mut cfg) = ctrl.config.try_lock() {
+                cfg.read();
+
+                let profile_names: String = cfg
+                    .power_profiles
+                    .keys()
+                    .cloned()
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                return profile_names;
+            }
+        }
+
+        "Failed".to_string()
+    }
 }
 
 impl crate::ZbusAdd for DbusFanAndCpu {
