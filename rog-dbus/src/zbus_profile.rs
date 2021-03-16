@@ -87,8 +87,7 @@ impl<'a> ProfileProxy<'a> {
 
     #[inline]
     pub fn profile_names(&self) -> Result<String> {
-        let profile_names = self.0.profile_names().expect("Failed to get profile names");
-        Ok(profile_names)
+        self.0.profile_names()
     }
 
     #[inline]
