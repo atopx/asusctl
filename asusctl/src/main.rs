@@ -395,11 +395,8 @@ fn handle_profile(
     if cmd.next {
         dbus.proxies().profile().next_fan()?;
     } else if cmd.list {
-        let profile_names_result = dbus.proxies().profile().profile_names();
-        match profile_names_result {
-            Ok(names) => println!("Available profiles are {}", names),
-            Err(_) => println!("Failed to get profile names"),
-        }
+        let profile_names = dbus.proxies().profile().profile_names()?;
+        println!("Available profiles are {}", profile_names);
     } else {
         dbus.proxies()
             .profile()
