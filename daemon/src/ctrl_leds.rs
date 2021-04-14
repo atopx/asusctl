@@ -1,7 +1,4 @@
 // Only these two packets must be 17 bytes
-static LED_APPLY: [u8; 17] = [0x5d, 0xb4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-static LED_SET: [u8; 17] = [0x5d, 0xb5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
 static KBD_BRIGHT_PATH: &str = "/sys/class/leds/asus::kbd_backlight/brightness";
 
 use crate::{
@@ -10,7 +7,11 @@ use crate::{
     laptops::{LaptopLedData, ASUS_KEYBOARD_DEVICES},
 };
 use log::{error, info, warn};
-use rog_types::{LED_MSG_LEN, aura_modes::{AuraEffect, AuraModeNum, LedBrightness}, supported::LedSupportedFunctions};
+use rog_aura::{
+    usb::{LED_APPLY, LED_SET},
+    AuraEffect, LedBrightness, LED_MSG_LEN,
+};
+use rog_types::supported::LedSupportedFunctions;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -50,6 +51,37 @@ pub struct CtrlKbdBacklight {
     supported_modes: LaptopLedData,
     flip_effect_write: bool,
     config: AuraConfig,
+}
+
+pub struct CtrlKbdBacklightTask(pub Arc<Mutex<CtrlKbdBacklight>>);
+
+impl crate::CtrlTask for CtrlKbdBacklightTask {
+    fn do_task(&self) -> Result<(), RogError> {
+        if let Ok(mut lock) = self.0.try_lock() {
+            let mut file = OpenOptions::new()
+                .read(true)
+                .open(&lock.bright_node)
+                .map_err(|err| match err.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        RogError::MissingLedBrightNode((&lock.bright_node).into(), err)
+                    }
+                    _ => RogError::Path((&lock.bright_node).into(), err),
+                })?;
+            let mut buf = [0u8; 1];
+            file.read_exact(&mut buf)
+                .map_err(|err| RogError::Read("buffer".into(), err))?;
+            if let Some(num) = char::from(buf[0]).to_digit(10) {
+                if lock.config.brightness != num.into() {
+                    lock.config.read();
+                    lock.config.brightness = num.into();
+                    lock.config.write();
+                }
+                return Ok(());
+            }
+            return Err(RogError::ParseLed);
+        }
+        Ok(())
+    }
 }
 
 pub struct DbusKbdBacklight {
@@ -166,73 +198,6 @@ impl DbusKbdBacklight {
 
     #[dbus_interface(signal)]
     fn notify_led(&self, data: &str) -> zbus::Result<()>;
-}
-
-impl crate::Reloadable for CtrlKbdBacklight {
-    fn reload(&mut self) -> Result<(), RogError> {
-        // set current mode (if any)
-        if self.supported_modes.standard.len() > 1 {
-            let current_mode = self.config.current_mode;
-            if self.supported_modes.standard.contains(&(current_mode)) {
-                let mode = self
-                    .config
-                    .builtins
-                    .get(&current_mode)
-                    .ok_or(RogError::NotSupported)?
-                    .to_owned();
-                self.write_mode(&mode)?;
-                info!("Reloaded last used mode");
-            } else {
-                warn!(
-                    "An unsupported mode was set: {}, reset to first mode available",
-                    <&str>::from(&self.config.current_mode)
-                );
-                self.config.builtins.remove(&current_mode);
-                self.config.current_mode = AuraModeNum::Static;
-                // TODO: do a recursive call with a boxed dyn future later
-                let mode = self
-                    .config
-                    .builtins
-                    .get(&current_mode)
-                    .ok_or(RogError::NotSupported)?
-                    .to_owned();
-                self.write_mode(&mode)?;
-                info!("Reloaded last used mode");
-            }
-        }
-
-        // Reload brightness
-        let bright = self.config.brightness;
-        self.set_brightness(bright)?;
-        info!("Reloaded last used brightness");
-        Ok(())
-    }
-}
-
-impl crate::CtrlTask for CtrlKbdBacklight {
-    fn do_task(&mut self) -> Result<(), RogError> {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .open(&self.bright_node)
-            .map_err(|err| match err.kind() {
-                std::io::ErrorKind::NotFound => {
-                    RogError::MissingLedBrightNode((&self.bright_node).into(), err)
-                }
-                _ => RogError::Path((&self.bright_node).into(), err),
-            })?;
-        let mut buf = [0u8; 1];
-        file.read_exact(&mut buf)
-            .map_err(|err| RogError::Read("buffer".into(), err))?;
-        if let Some(num) = char::from(buf[0]).to_digit(10) {
-            if self.config.brightness != num.into() {
-                self.config.read();
-                self.config.brightness = num.into();
-                self.config.write();
-            }
-            return Ok(());
-        }
-        Err(RogError::ParseLed)
-    }
 }
 
 impl CtrlKbdBacklight {
