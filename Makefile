@@ -58,6 +58,7 @@ install:
 	$(INSTALL_DATA) "./data/icons/asus_notif_red.png" "$(DESTDIR)$(datarootdir)/icons/hicolor/512x512/apps/asus_notif_red.png"
 	$(INSTALL_DATA) "./data/_asusctl" "$(DESTDIR)$(zshcpl)/_asusctl"
 	$(INSTALL_DATA) "./data/completions/asusctl.fish" "$(DESTDIR)$(datarootdir)/fish/vendor_completions.d/asusctl.fish"
+	$(INSTALL_DATA) "./data/completions/asusctl.bash" "$(DESTDIR)$(datarootdir)/bash-completion/completions/asusctl.bash"
 	cd data && find "./anime" -type f -exec install -Dm 755 "{}" "$(DESTDIR)$(datarootdir)/asusd/{}" \;
 
 uninstall:
@@ -76,6 +77,7 @@ uninstall:
 	rm -r "$(DESTDIR)$(datarootdir)/icons/hicolor/512x512/apps/asus_notif_red.png"
 	rm -f "$(DESTDIR)$(zshcpl)/_asusctl"
 	rm -f "$(DESTDIR)$(datarootdir)/fish/vendor_completions.d/asusctl.fish"
+	rm -f "$(DESTDIR)$(datarootdir)/bash-completion/completions/asusctl.bash"
 	rm -rf "$(DESTDIR)$(datarootdir)/asusd"
 
 update:
