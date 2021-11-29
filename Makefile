@@ -10,6 +10,7 @@ bindir = $(exec_prefix)/bin
 datarootdir = $(prefix)/share
 libdir = $(exec_prefix)/lib
 zshcpl = $(datarootdir)/zsh/site-functions
+configdir = /etc
 
 BIN_C := asusctl
 BIN_D := asusd
@@ -45,7 +46,7 @@ install:
 	$(INSTALL_PROGRAM) "./target/release/$(BIN_N)" "$(DESTDIR)$(bindir)/$(BIN_N)"
 
 	$(INSTALL_DATA) "./data/$(BIN_D).rules" "$(DESTDIR)$(libdir)/udev/rules.d/99-$(BIN_D).rules"
-	$(INSTALL_DATA) "./data/$(LEDCFG)" "$(DESTDIR)/etc/asusd/$(LEDCFG)"
+	$(INSTALL_DATA) "./data/$(LEDCFG)" "$(DESTDIR)/$(configdir)/asusd/$(LEDCFG)"
 	$(INSTALL_DATA) "./data/$(BIN_D).conf" "$(DESTDIR)$(datarootdir)/dbus-1/system.d/$(BIN_D).conf"
 
 	$(INSTALL_DATA) "./data/$(BIN_D).service" "$(DESTDIR)$(libdir)/systemd/system/$(BIN_D).service"
@@ -72,7 +73,7 @@ uninstall:
 	rm -f "$(DESTDIR)$(bindir)/$(BIN_D)"
 	rm -f "$(DESTDIR)$(bindir)/$(BIN_N)"
 	rm -f "$(DESTDIR)$(libdir)/udev/rules.d/99-$(BIN_D).rules"
-	rm -f "$(DESTDIR)/etc/asusd/$(LEDCFG)"
+	rm -f "$(DESTDIR)/$(configdir)/asusd/$(LEDCFG)"
 	rm -f "$(DESTDIR)$(datarootdir)/dbus-1/system.d/$(BIN_D).conf"
 	rm -f "$(DESTDIR)$(libdir)/systemd/system/$(BIN_D).service"
 	rm -r "$(DESTDIR)$(libdir)/systemd/user/$(BIN_N).service"
