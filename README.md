@@ -9,7 +9,7 @@ but can also be used with non-asus laptops with reduced features.
 
 **The minimum supported kernel version is 5.15**
 
-Fan curve control on laptops with this feature require [this patch](https://lkml.org/lkml/2021/10/23/250) whcih has been merged for 5.17 upstream.
+Fan curve control on laptops with this feature require [this patch](https://lkml.org/lkml/2021/10/23/250) which has been merged for 5.17 upstream.
 
 ## Goals
 
@@ -65,9 +65,9 @@ Requirements are rust >= 1.57 installed from rustup.io if the distro provided ve
 **fedora:** `dnf install clang-devel systemd-devel`
 
 ## Installing
--
+
 - Fedora copr = https://copr.fedorainfracloud.org/coprs/lukenukem/asus-linux/
-- openSUSE = https://download.opensuse.org/repositories/home:/luke_nukem:/asus/
+- openSUSE = https://software.opensuse.org/download.html?project=home%3Aluke_nukem%3Aasus&package=asusctl
 - Ubuntu = not supported due to packaging woes, but you can build and install on your own.
 
 =======
@@ -99,7 +99,7 @@ Mozilla Public License 2 (MPL-2.0)
 
 ---
 
-ASUS and ROG Trademark is either a US registered trademark or trademark of ASUSTeK Computer Inc. in the United States and/or other countries.
+ASUS and ROG Trademark are either US registered trademarks or trademarks of ASUSTeK Computer Inc. in the United States and/or other countries.
 
 Reference to any ASUS products, services, processes, or other information and/or use of ASUS Trademarks does not constitute or imply endorsement, sponsorship, or recommendation thereof by ASUS.
 
