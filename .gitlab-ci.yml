@@ -13,3 +13,16 @@ variables:
 
 before_script:
   - apt-get update -qq && apt-get install -y -qq libdbus-1-dev libclang-dev libudev-dev
+
+cargo_build:
+
+  only:
+    - main
+
+  variables:
+    OUTPUT_DIR: "cargo-config"
+
+  artifacts:
+    when: always
+    paths:
+      - $PROJECT_ROOT/$OUTPUT_DIR
