@@ -1,26 +1,17 @@
-image: rustdocker/rust:stable
 
-before_script:
-  - apt-get update -qq && apt-get install -y -qq libdbus-1-dev libclang-dev libudev-dev
+include:
+  #  Remove the scope berfore Merging
+  - remote: 'https://jobs.r2devops.io/latest/cargo_clippy.yml?scope=0.yml'
+  - remote: 'https://jobs.r2devops.io/latest/cargo_build.yml?scope=0.yml'
+  - remote: 'https://jobs.r2devops.io/latest/cargo_doc.yml?scope=0.yml'
+
 
 stages:
-    - test
-    - build
-
-test:
-  script:
-    - cargo check #+nightly check --features "clippy"
-
-build:
-  only:
-    - main
-  script:
-    - make && make vendor
-  artifacts:
-    paths:
-    - vendor_asus-nb-ctrl_*.tar.xz
-    - cargo-config
+  - static_tests
+  - build
 
 variables:
   GIT_SUBMODULE_STRATEGY: normal
 
+before_script:
+  - apt-get update -qq && apt-get install -y -qq libdbus-1-dev libclang-dev libudev-dev
