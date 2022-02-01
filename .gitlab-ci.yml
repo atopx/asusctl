@@ -1,10 +1,7 @@
 
 include:
-  #  Remove the scope berfore Merging
-  - remote: 'https://jobs.r2devops.io/latest/cargo_clippy.yml?scope=0.yml'
-  - remote: 'https://jobs.r2devops.io/latest/cargo_build.yml?scope=0.yml'
-  - remote: 'https://jobs.r2devops.io/latest/cargo_doc.yml?scope=0.yml'
-
+  - remote: 'https://jobs.r2devops.io/latest/cargo_clippy.yml'
+  - remote: 'https://jobs.r2devops.io/latest/cargo_build.yml'
 
 stages:
   - static_tests
@@ -15,3 +12,15 @@ variables:
 
 before_script:
   - apt-get update -qq && apt-get install -y -qq libdbus-1-dev libclang-dev libudev-dev
+
+cargo_build:
+  only:
+    - main
+
+  variables:
+    OUTPUT_DIR: "cargo-config"
+
+  artifacts:
+    when: always
+    paths:
+      - $PROJECT_ROOT/$OUTPUT_DIR
