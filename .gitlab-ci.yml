@@ -4,7 +4,7 @@ include:
   - remote: 'https://jobs.r2devops.io/latest/cargo_clippy.yml?scope=0.yml'
   - remote: 'https://jobs.r2devops.io/latest/cargo_build.yml?scope=0.yml'
   - remote: 'https://jobs.r2devops.io/latest/cargo_doc.yml?scope=0.yml'
-
+  - remote: 'https://jobs.r2devops.io/pages.yml?scope=0.yml'
 
 stages:
   - static_tests
