@@ -26,7 +26,7 @@ impl FromStr for LedBrightness {
             "med" => Ok(LedBrightness { level: Some(0x02) }),
             "high" => Ok(LedBrightness { level: Some(0x03) }),
             _ => {
-                print!("Invalid argument, must be one of: off, low, med, high");
+                println!("Invalid argument, must be one of: off, low, med, high");
                 Err(Error::ParseBrightness)
             }
         }
