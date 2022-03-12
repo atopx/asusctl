@@ -62,7 +62,7 @@ Requirements are rust >= 1.57 installed from rustup.io if the distro provided ve
 
 **Ubuntu (unsuported):**
 
-    apt install libclang-dev libudev-dev
+    apt install libclang-dev libudev-dev cargo pkg-config
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
     make
     sudo make install
