@@ -8,6 +8,13 @@ pub const LED_INIT5: [u8; 6] = [0x5e, 0x05, 0x20, 0x31, 0, 0x08];
 pub const LED_APPLY: [u8; 17] = [0x5d, 0xb4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 pub const LED_SET: [u8; 17] = [0x5d, 0xb5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
+pub const BOOT_MASK:i32 = 0xc31309;
+pub const SLEEP_MASK:i32 = 0x300904;
+pub const ALL_LEDS_MASK:i32 = 0x000002;
+pub const KBD_LEDS_MASK:i32 = 0x080000;
+pub const SIDE_LEDS_MASK:i32 = 0x040500;
+pub const LEDS_STATE_MASK:i32 = ALL_LEDS_MASK | KBD_LEDS_MASK | SIDE_LEDS_MASK;
+
 /// Writes out the correct byte string for brightness
 pub const fn aura_brightness_bytes(brightness: u8) -> [u8; 17] {
     [

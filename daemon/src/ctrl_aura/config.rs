@@ -23,8 +23,10 @@ impl AuraConfigV320 {
             current_mode: self.current_mode,
             builtins: self.builtins,
             multizone: self.multizone,
-            awake_enabled: true,
+            boot_enabled: true,
             sleep_anim_enabled: true,
+            all_leds_enabled: true,
+            keys_leds_enabled: true,
             side_leds_enabled: true,
         }
     }
@@ -45,8 +47,10 @@ impl AuraConfigV352 {
             current_mode: self.current_mode,
             builtins: self.builtins,
             multizone: self.multizone,
-            awake_enabled: true,
+            boot_enabled: true,
             sleep_anim_enabled: true,
+            all_leds_enabled: true,
+            keys_leds_enabled: true,
             side_leds_enabled: true,
         }
     }
@@ -58,8 +62,10 @@ pub struct AuraConfig {
     pub current_mode: AuraModeNum,
     pub builtins: BTreeMap<AuraModeNum, AuraEffect>,
     pub multizone: Option<AuraMultiZone>,
-    pub awake_enabled: bool,
+    pub boot_enabled: bool,
     pub sleep_anim_enabled: bool,
+    pub all_leds_enabled: bool,
+    pub keys_leds_enabled: bool,
     pub side_leds_enabled: bool,
 }
 
@@ -70,8 +76,10 @@ impl Default for AuraConfig {
             current_mode: AuraModeNum::Static,
             builtins: BTreeMap::new(),
             multizone: None,
-            awake_enabled: true,
+            boot_enabled: true,
             sleep_anim_enabled: true,
+            all_leds_enabled: true,
+            keys_leds_enabled: true,
             side_leds_enabled: true,
         }
     }
