@@ -1,7 +1,6 @@
 // Only these two packets must be 17 bytes
 static KBD_BRIGHT_PATH: &str = "/sys/class/leds/asus::kbd_backlight/brightness";
 
-use std::convert::TryFrom;
 use crate::{
     error::RogError,
     laptops::{LaptopLedData, ASUS_KEYBOARD_DEVICES},
@@ -12,8 +11,7 @@ use log::{error, info, warn};
 use logind_zbus::manager::ManagerProxy;
 use rog_aura::{
     usb::{
-        LED_APPLY, LED_SET, BOOT_MASK, SLEEP_MASK, ALL_LEDS_MASK,
-        KBD_LEDS_MASK, SIDE_LEDS_MASK, LEDS_STATE_MASK
+        LED_APPLY, LED_SET
     },
     AuraEffect, LedBrightness, LED_MSG_LEN,
 };
@@ -21,12 +19,11 @@ use rog_supported::LedSupportedFunctions;
 use smol::{stream::StreamExt, Executor};
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
-use std::ops::{BitAnd, BitOr};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use zbus::Connection;
-use crate::ctrl_aura::controller::LedCfgState::{Off, On};
+use rog_aura::usb::leds_message;
 
 use crate::GetSupported;
 
@@ -179,97 +176,6 @@ impl CtrlKbdLedZbus {
     pub fn new(inner: Arc<Mutex<CtrlKbdLed>>) -> Self {
         Self(inner)
     }
-}
-
-#[derive(Clone, Copy)]
-pub enum LedCfgState {
-    On = 0xffffff,
-    Off = 0x0
-}
-
-impl From<i32> for LedCfgState {
-    fn from(state: i32) -> Self {
-        match state {
-            0xffffff => On,
-            0x0 => Off,
-            _ => Off
-        }
-    }
-}
-
-impl From<bool> for LedCfgState {
-    fn from(state: bool) -> Self {
-        match state {
-            true => On,
-            false => Off
-        }
-    }
-}
-
-impl TryFrom <[u8; 3]> for LedCfgState {
-    type Error = &'static str;
-
-    fn try_from(value: [u8; 3]) -> Result<Self, Self::Error> {
-        match value {
-            [0xff, 0xff, 0xff] => Ok(On),
-            [0, 0, 0] => Ok(Off),
-            _ => Err("Unconvertible value")
-        }
-    }
-}
-
-impl BitAnd<LedCfgState> for i32 {
-    type Output = i32;
-
-    fn bitand(self, rhs: LedCfgState) -> i32 {
-        return self & rhs as i32
-    }
-}
-impl BitOr<LedCfgState> for i32 {
-    type Output = i32;
-
-    fn bitor(self, rhs: LedCfgState) -> Self::Output {
-        return self | rhs as i32
-    }
-}
-
-impl BitOr<LedCfgState> for LedCfgState {
-    type Output = i32;
-
-    fn bitor(self, rhs: LedCfgState) -> i32 {
-        return self as i32 | rhs as i32;
-    }
-}
-
-impl BitAnd<LedCfgState> for LedCfgState {
-    type Output = LedCfgState;
-
-    fn bitand(self, rhs: LedCfgState) -> LedCfgState {
-        return (self as i32 & rhs as i32).into();
-    }
-}
-
-pub fn leds_message (boot_state: bool, sleep_state: bool, all_leds_state: bool, kbd_leds_state: bool, side_leds_state: bool) -> [u8; 3] {
-    let raw_message = _leds_message(boot_state.into(), sleep_state.into(), all_leds_state.into(), kbd_leds_state.into(), side_leds_state.into());
-
-    let [_, lows @ ..] = i32::to_be_bytes(raw_message);
-    return lows;
-}
-
-fn _leds_message (boot_state: LedCfgState, sleep_state: LedCfgState, all_leds_state: LedCfgState, kbd_leds_state: LedCfgState, side_leds_state: LedCfgState) -> i32 {
-
-    let full_leds_state = match all_leds_state {
-        On => (ALL_LEDS_MASK & all_leds_state) | (KBD_LEDS_MASK & kbd_leds_state) | (SIDE_LEDS_MASK & side_leds_state),
-        Off => 0x0100 & side_leds_state,
-    };
-
-    let boot_xor_sleep = (BOOT_MASK & boot_state) ^ (SLEEP_MASK & sleep_state);
-
-    return match (all_leds_state | kbd_leds_state | side_leds_state).into() {
-        On => boot_xor_sleep ^ ((boot_xor_sleep ^ full_leds_state) & LEDS_STATE_MASK),
-        _ => boot_xor_sleep
-    }
-
 }
 
 impl CtrlKbdLed {
