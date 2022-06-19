@@ -37,7 +37,7 @@ impl CtrlKbdLedZbus {
             ctrl.config.boot_anim_enabled = enabled;
             ctrl.config.write();
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
             .map_err(|err| warn!("{}", err))
             .ok();
 
@@ -68,7 +68,7 @@ impl CtrlKbdLedZbus {
             ctrl.config.sleep_anim_enabled = enabled;
             ctrl.config.write();
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
             .map_err(|err| warn!("{}", err))
             .ok();
 
@@ -100,7 +100,7 @@ impl CtrlKbdLedZbus {
             ctrl.config.side_leds_enabled = enabled;
             ctrl.config.write();
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
                 .map_err(|err| warn!("{}", err))
                 .ok();
 
@@ -131,7 +131,7 @@ impl CtrlKbdLedZbus {
             ctrl.config.keys_leds_enabled = enabled;
             ctrl.config.write();
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
                 .map_err(|err| warn!("{}", err))
                 .ok();
 
@@ -162,7 +162,7 @@ impl CtrlKbdLedZbus {
             ctrl.config.side_leds_enabled = enabled;
             ctrl.config.write();
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
                 .map_err(|err| warn!("{}", err))
                 .ok();
 

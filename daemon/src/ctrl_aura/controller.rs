@@ -162,7 +162,7 @@ impl crate::Reloadable for CtrlKbdLedReloader {
                 ctrl.do_command(mode).ok();
             }
 
-            ctrl.set_states_enabled(&ctrl.config)
+            ctrl.set_power_states(&ctrl.config)
                 .map_err(|err| warn!("{err}"))
                 .ok();
         }
@@ -284,7 +284,7 @@ impl CtrlKbdLed {
 
 
     /// Set combination state for boot animation/sleep animation/all leds/keys leds/side leds LED active
-    pub(super) fn set_states_enabled(&self, config: &AuraConfig) -> Result<(), RogError> {
+    pub(super) fn set_power_states(&self, config: &AuraConfig) -> Result<(), RogError> {
 
         let bytes = leds_message(config.boot_anim_enabled,
                                  config.sleep_anim_enabled,
