@@ -380,7 +380,7 @@ impl CtrlKbdLed {
     /// Set combination state for boot animation/sleep animation/all leds/keys leds/side leds LED active
     pub(super) fn set_states_enabled(&self, config: &AuraConfig) -> Result<(), RogError> {
 
-        let bytes = leds_message(config.boot_enabled,
+        let bytes = leds_message(config.boot_anim_enabled,
                                  config.sleep_anim_enabled,
                                  config.all_leds_enabled,
                                  config.keys_leds_enabled,

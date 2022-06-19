@@ -23,7 +23,7 @@ impl AuraConfigV320 {
             current_mode: self.current_mode,
             builtins: self.builtins,
             multizone: self.multizone,
-            boot_enabled: true,
+            boot_anim_enabled: true,
             sleep_anim_enabled: true,
             all_leds_enabled: true,
             keys_leds_enabled: true,
@@ -47,7 +47,7 @@ impl AuraConfigV352 {
             current_mode: self.current_mode,
             builtins: self.builtins,
             multizone: self.multizone,
-            boot_enabled: true,
+            boot_anim_enabled: true,
             sleep_anim_enabled: true,
             all_leds_enabled: true,
             keys_leds_enabled: true,
@@ -57,16 +57,44 @@ impl AuraConfigV352 {
 }
 
 #[derive(Deserialize, Serialize)]
+pub struct AuraConfigV407 {
+    pub brightness: LedBrightness,
+    pub current_mode: AuraModeNum,
+    pub builtins: BTreeMap<AuraModeNum, AuraEffect>,
+    pub multizone: Option<AuraMultiZone>,
+    pub awake_enabled: bool,
+    pub sleep_anim_enabled: bool,
+    pub side_leds_enabled: bool,
+}
+
+impl AuraConfigV407 {
+    pub(crate) fn into_current(self) -> AuraConfig {
+        AuraConfig {
+            brightness: self.brightness,
+            current_mode: self.current_mode,
+            builtins: self.builtins,
+            multizone: self.multizone,
+            boot_anim_enabled: true,
+            sleep_anim_enabled: self.sleep_anim_enabled,
+            all_leds_enabled: self.awake_enabled,
+            keys_leds_enabled: self.awake_enabled,
+            side_leds_enabled: self.side_leds_enabled,
+        }
+    }
+}
+
+
+#[derive(Deserialize, Serialize)]
 pub struct AuraConfig {
     pub brightness: LedBrightness,
     pub current_mode: AuraModeNum,
     pub builtins: BTreeMap<AuraModeNum, AuraEffect>,
     pub multizone: Option<AuraMultiZone>,
-    pub boot_enabled: bool,
+    pub boot_anim_enabled: bool,
     pub sleep_anim_enabled: bool,
     pub all_leds_enabled: bool,
     pub keys_leds_enabled: bool,
-    pub side_leds_enabled: bool,
+    pub side_leds_enabled: bool
 }
 
 impl Default for AuraConfig {
@@ -76,7 +104,7 @@ impl Default for AuraConfig {
             current_mode: AuraModeNum::Static,
             builtins: BTreeMap::new(),
             multizone: None,
-            boot_enabled: true,
+            boot_anim_enabled: true,
             sleep_anim_enabled: true,
             all_leds_enabled: true,
             keys_leds_enabled: true,
@@ -112,6 +140,11 @@ impl AuraConfig {
                     info!("Updated AuraConfig version");
                     return config;
                 } else if let Ok(data) = serde_json::from_str::<AuraConfigV352>(&buf) {
+                    let config = data.into_current();
+                    config.write();
+                    info!("Updated AuraConfig version");
+                    return config;
+                } else if let Ok(data) = serde_json::from_str::<AuraConfigV407>(&buf) {
                     let config = data.into_current();
                     config.write();
                     info!("Updated AuraConfig version");
