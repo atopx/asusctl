@@ -83,8 +83,12 @@ impl AnimeImage {
         pixels: Vec<Pixel>,
         width: u32,
         anime_type: AnimeType,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, AnimeError> {
+        if bright < 0.0 || bright > 1.0 {
+            return Err(AnimeError::InvalidBrightness(bright));
+        }
+
+        Ok(Self {
             scale,
             angle,
             translation,
@@ -93,7 +97,7 @@ impl AnimeImage {
             img_pixels: pixels,
             width,
             anime_type,
-        }
+        })
     }
 
     // TODO: Convert functions back to const after todo completed
@@ -434,7 +438,7 @@ impl AnimeImage {
             pixels,
             width,
             anime_type,
-        );
+        )?;
 
         matrix.update();
         Ok(matrix)
@@ -503,7 +507,7 @@ impl From<&AnimeImage> for AnimeDataBuffer {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::{image::*, AnimePacketType, AnimeGif, AnimTime};
+    use crate::{image::*, AnimTime, AnimeGif, AnimePacketType};
 
     #[test]
     fn led_positions() {
@@ -726,7 +730,8 @@ mod tests {
             vec![Pixel::default(); 1000],
             100,
             AnimeType::GA402,
-        );
+        )
+        .unwrap();
         matrix.edge_outline();
         let data = AnimeDataBuffer::from(&matrix);
         let pkt = AnimePacketType::from(data);
@@ -742,7 +747,16 @@ mod tests {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("data/anime/custom/sonic-run.gif");
 
-        let matrix = AnimeGif::from_gif(&path, 1.0, 0.0, Vec2::default(), AnimTime::Infinite, 1.0, AnimeType::GA402).unwrap();
+        let matrix = AnimeGif::from_gif(
+            &path,
+            1.0,
+            0.0,
+            Vec2::default(),
+            AnimTime::Infinite,
+            1.0,
+            AnimeType::GA402,
+        )
+        .unwrap();
         matrix.frames()[0].frame();
         let _pkt = AnimePacketType::from(matrix.frames()[0].frame().clone());
     }
