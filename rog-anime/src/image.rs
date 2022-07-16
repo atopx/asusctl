@@ -312,7 +312,8 @@ impl AnimeImage {
         }
     }
 
-    fn edge_outline(&mut self) {
+    /// A helper for determining physical position alignment
+    fn _edge_outline(&mut self) {
         // Janky shit here just to try help align images
         let mut last_x = 0.0;
         let mut last_y = 0.0;
@@ -730,9 +731,8 @@ mod tests {
             vec![Pixel::default(); 1000],
             100,
             AnimeType::GA402,
-        )
-        .unwrap();
-        matrix.edge_outline();
+        );
+        matrix._edge_outline();
         let data = AnimeDataBuffer::from(&matrix);
         let pkt = AnimePacketType::from(data);
 
