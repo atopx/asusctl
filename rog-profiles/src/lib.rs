@@ -163,12 +163,15 @@ impl FanCurveProfiles {
         enumerator.match_subsystem("hwmon")?;
 
         for device in enumerator.scan_devices()? {
-            if device.parent_with_subsystem("platform")?.is_some() {
+            dbg!(&device);
+            // if device.parent_with_subsystem("platform")?.is_some() {
                 if let Some(name) = device.attribute_value("name") {
+                    dbg!(&name);
                     if name == "asus_custom_fan_curve" {
+                        dbg!(&device);
                         return Ok(device);
                     }
-                }
+                // }
             }
         }
         Err(ProfileError::NotSupported)
