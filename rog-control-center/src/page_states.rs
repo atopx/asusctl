@@ -12,6 +12,8 @@ use rog_dbus::RogDbusClientBlocking;
 use rog_profiles::{fan_curve_set::FanCurveSet, FanCurvePU, Profile};
 use rog_supported::SupportedFunctions;
 
+use crate::error::Result;
+
 #[derive(Clone, Debug)]
 pub struct BiosState {
     /// To be shared to a thread that checks notifications.
@@ -30,28 +32,28 @@ impl BiosState {
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        Ok(Self {
             was_notified,
-            post_sound: if supported.rog_bios_ctrl.post_sound {
-                dbus.proxies().rog_bios().post_boot_sound().unwrap() != 0
+            post_sound: if supported.rog_bios_ctrl.post_sound && !cfg!(mocking) {
+                dbus.proxies().rog_bios().post_boot_sound()? != 0
             } else {
                 false
             },
-            dedicated_gfx: if supported.rog_bios_ctrl.dedicated_gfx {
-                dbus.proxies().rog_bios().dedicated_graphic_mode().unwrap() != 0
+            dedicated_gfx: if supported.rog_bios_ctrl.dedicated_gfx && !cfg!(mocking) {
+                dbus.proxies().rog_bios().dedicated_graphic_mode()? != 0
             } else {
                 false
             },
-            panel_overdrive: if supported.rog_bios_ctrl.panel_overdrive {
-                dbus.proxies().rog_bios().panel_overdrive().unwrap() != 0
+            panel_overdrive: if supported.rog_bios_ctrl.panel_overdrive && !cfg!(mocking) {
+                dbus.proxies().rog_bios().panel_overdrive()? != 0
             } else {
                 false
             },
             // TODO: needs supergfx
             dgpu_disable: supported.rog_bios_ctrl.dgpu_disable,
             egpu_enable: supported.rog_bios_ctrl.egpu_enable,
-        }
+        })
     }
 }
 
@@ -67,20 +69,20 @@ impl ProfilesState {
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        Ok(Self {
             was_notified,
-            list: if supported.platform_profile.platform_profile {
-                dbus.proxies().profile().profiles().unwrap()
+            list: if supported.platform_profile.platform_profile && !cfg!(mocking) {
+                dbus.proxies().profile().profiles()?
             } else {
                 vec![]
             },
-            current: if supported.platform_profile.platform_profile {
-                dbus.proxies().profile().active_profile().unwrap()
+            current: if supported.platform_profile.platform_profile && !cfg!(mocking) {
+                dbus.proxies().profile().active_profile()?
             } else {
                 Profile::Balanced
             },
-        }
+        })
     }
 }
 
@@ -99,18 +101,17 @@ impl FanCurvesState {
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        let profiles = if supported.platform_profile.platform_profile {
-            dbus.proxies().profile().profiles().unwrap()
+    ) -> Result<Self> {
+        let profiles = if supported.platform_profile.platform_profile && !cfg!(mocking) {
+            dbus.proxies().profile().profiles()?
         } else {
             vec![Profile::Balanced, Profile::Quiet, Profile::Performance]
         };
-        let enabled = if supported.platform_profile.fan_curves {
+        let enabled = if supported.platform_profile.fan_curves && !cfg!(mocking) {
             HashSet::from_iter(
                 dbus.proxies()
                     .profile()
-                    .enabled_fan_profiles()
-                    .unwrap()
+                    .enabled_fan_profiles()?
                     .iter()
                     .cloned(),
             )
@@ -120,9 +121,10 @@ impl FanCurvesState {
 
         let mut curves: HashMap<Profile, FanCurveSet> = HashMap::new();
         profiles.iter().for_each(|p| {
-            if supported.platform_profile.fan_curves {
-                let curve = dbus.proxies().profile().fan_curve_data(*p).unwrap();
-                curves.insert(*p, curve);
+            if supported.platform_profile.fan_curves && !cfg!(mocking) {
+                if let Ok(curve) = dbus.proxies().profile().fan_curve_data(*p) {
+                    curves.insert(*p, curve);
+                }
             } else {
                 let mut curve = FanCurveSet::default();
                 curve.cpu.pwm = [30, 40, 60, 100, 140, 180, 200, 250];
@@ -133,20 +135,20 @@ impl FanCurvesState {
             }
         });
 
-        let show_curve = if supported.platform_profile.fan_curves {
-            dbus.proxies().profile().active_profile().unwrap()
+        let show_curve = if supported.platform_profile.fan_curves && !cfg!(mocking) {
+            dbus.proxies().profile().active_profile()?
         } else {
             Profile::Balanced
         };
 
-        Self {
+        Ok(Self {
             was_notified,
             show_curve,
             show_graph: FanCurvePU::CPU,
             enabled,
             curves,
             drag_delta: Vec2::default(),
-        }
+        })
     }
 }
 
@@ -165,27 +167,34 @@ impl AuraState {
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        Ok(Self {
             was_notified,
-            current_mode: if !supported.keyboard_led.stock_led_modes.is_empty() {
-                dbus.proxies().led().led_mode().unwrap()
+            current_mode: if !supported.keyboard_led.stock_led_modes.is_empty() && !cfg!(mocking) {
+                dbus.proxies().led().led_mode()?
             } else {
                 AuraModeNum::Static
             },
 
-            modes: if !supported.keyboard_led.stock_led_modes.is_empty() {
-                dbus.proxies().led().led_modes().unwrap()
+            modes: if !supported.keyboard_led.stock_led_modes.is_empty() && !cfg!(mocking) {
+                dbus.proxies().led().led_modes()?
             } else {
                 BTreeMap::new()
             },
-            enabled: dbus.proxies().led().leds_enabled().unwrap(),
-            bright: if !supported.keyboard_led.brightness_set {
-                dbus.proxies().led().led_brightness().unwrap()
+            enabled: if !cfg!(mocking) {
+                dbus.proxies().led().leds_enabled()?
+            } else {
+                AuraPowerDev {
+                    x1866: vec![],
+                    x19b6: vec![],
+                }
+            },
+            bright: if !supported.keyboard_led.brightness_set && !cfg!(mocking) {
+                dbus.proxies().led().led_brightness()?
             } else {
                 2
             },
-        }
+        })
     }
 }
 
@@ -203,23 +212,23 @@ impl AnimeState {
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        Ok(Self {
             was_notified,
-            boot: if supported.anime_ctrl.0 {
-                dbus.proxies().anime().boot_enabled().unwrap()
+            boot: if supported.anime_ctrl.0 && !cfg!(mocking) {
+                dbus.proxies().anime().boot_enabled()?
             } else {
                 false
             },
-            awake: if supported.anime_ctrl.0 {
-                dbus.proxies().anime().awake_enabled().unwrap()
+            awake: if supported.anime_ctrl.0 && !cfg!(mocking) {
+                dbus.proxies().anime().awake_enabled()?
             } else {
                 false
             },
             // TODO:
             sleep: false,
             bright: 200,
-        }
+        })
     }
 }
 
@@ -249,56 +258,109 @@ impl PageDataStates {
         fans_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        Ok(Self {
             notifs_enabled,
             was_notified: charge_notified,
-            charge_limit: dbus.proxies().charge().limit().unwrap(),
-            bios: BiosState::new(bios_notified, supported, dbus),
-            aura: AuraState::new(aura_notified, supported, dbus),
-            anime: AnimeState::new(anime_notified, supported, dbus),
-            profiles: ProfilesState::new(profiles_notified, supported, dbus),
-            fan_curves: FanCurvesState::new(fans_notified, supported, dbus),
+            charge_limit: dbus.proxies().charge().limit()?,
+            bios: BiosState::new(bios_notified, supported, dbus)?,
+            aura: AuraState::new(aura_notified, supported, dbus)?,
+            anime: AnimeState::new(anime_notified, supported, dbus)?,
+            profiles: ProfilesState::new(profiles_notified, supported, dbus)?,
+            fan_curves: FanCurvesState::new(fans_notified, supported, dbus)?,
             error: None,
-        }
+        })
     }
 
     pub fn refresh_if_notfied(
         &mut self,
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
-    ) -> bool {
+    ) -> Result<bool> {
+        #[cfg(feature = "mocking")]
+        return Ok(true);
+
         let mut notified = false;
         if self.was_notified.load(Ordering::SeqCst) {
-            self.charge_limit = dbus.proxies().charge().limit().unwrap();
+            self.charge_limit = dbus.proxies().charge().limit()?;
             self.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.aura.was_notified.load(Ordering::SeqCst) {
-            self.aura = AuraState::new(self.aura.was_notified.clone(), supported, dbus);
+            self.aura = AuraState::new(self.aura.was_notified.clone(), supported, dbus)?;
             self.aura.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.bios.was_notified.load(Ordering::SeqCst) {
-            self.bios = BiosState::new(self.bios.was_notified.clone(), supported, dbus);
+            self.bios = BiosState::new(self.bios.was_notified.clone(), supported, dbus)?;
             self.bios.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.profiles.was_notified.load(Ordering::SeqCst) {
-            self.profiles = ProfilesState::new(self.profiles.was_notified.clone(), supported, dbus);
+            self.profiles =
+                ProfilesState::new(self.profiles.was_notified.clone(), supported, dbus)?;
             self.profiles.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.fan_curves.was_notified.load(Ordering::SeqCst) {
             self.fan_curves =
-                FanCurvesState::new(self.fan_curves.was_notified.clone(), supported, dbus);
+                FanCurvesState::new(self.fan_curves.was_notified.clone(), supported, dbus)?;
             self.fan_curves.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
-        notified
+        Ok(notified)
+    }
+}
+
+impl Default for PageDataStates {
+    fn default() -> Self {
+        Self {
+            notifs_enabled: Default::default(),
+            was_notified: Default::default(),
+            bios: BiosState {
+                was_notified: Default::default(),
+                post_sound: Default::default(),
+                dedicated_gfx: Default::default(),
+                panel_overdrive: Default::default(),
+                dgpu_disable: Default::default(),
+                egpu_enable: Default::default(),
+            },
+            aura: AuraState {
+                was_notified: Default::default(),
+                current_mode: AuraModeNum::Static,
+                modes: Default::default(),
+                enabled: AuraPowerDev {
+                    x1866: vec![],
+                    x19b6: vec![],
+                },
+                bright: Default::default(),
+            },
+            anime: AnimeState {
+                was_notified: Default::default(),
+                bright: Default::default(),
+                boot: Default::default(),
+                awake: Default::default(),
+                sleep: Default::default(),
+            },
+            profiles: ProfilesState {
+                was_notified: Default::default(),
+                list: Default::default(),
+                current: Default::default(),
+            },
+            fan_curves: FanCurvesState {
+                was_notified: Default::default(),
+                show_curve: Default::default(),
+                show_graph: Default::default(),
+                enabled: Default::default(),
+                curves: Default::default(),
+                drag_delta: Default::default(),
+            },
+            charge_limit: Default::default(),
+            error: Default::default(),
+        }
     }
 }

@@ -77,7 +77,10 @@ impl<'a> RogApp<'a> {
             #[cfg(not(feature = "mocking"))]
             {
                 let notif = curves.was_notified.clone();
-                *curves = FanCurvesState::new(notif, supported, dbus);
+                match FanCurvesState::new(notif, supported, dbus) {
+                    Ok(f) => *curves = f,
+                    Err(e) => *do_error = Some(e.to_string()),
+                }
             }
         }
     }
