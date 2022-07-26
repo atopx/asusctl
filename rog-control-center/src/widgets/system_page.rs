@@ -1,5 +1,8 @@
+#[cfg(feature = "mocking")]
+use crate::mocking::RogDbusClientBlocking;
 use crate::{page_states::PageDataStates, RogApp};
 use egui::Ui;
+#[cfg(not(feature = "mocking"))]
 use rog_dbus::RogDbusClientBlocking;
 use rog_profiles::Profile;
 

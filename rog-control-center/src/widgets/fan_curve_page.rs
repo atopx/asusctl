@@ -1,8 +1,11 @@
+#[cfg(feature = "mocking")]
+use crate::mocking::RogDbusClientBlocking;
 use crate::{
     page_states::{FanCurvesState, ProfilesState},
     RogApp,
 };
 use egui::{plot::Points, Ui};
+#[cfg(not(feature = "mocking"))]
 use rog_dbus::RogDbusClientBlocking;
 use rog_profiles::{FanCurvePU, Profile};
 use rog_supported::SupportedFunctions;
@@ -73,14 +76,10 @@ impl<'a> RogApp<'a> {
         });
 
         if changed {
-            // Need to update app data if change made
-            #[cfg(not(feature = "mocking"))]
-            {
-                let notif = curves.was_notified.clone();
-                match FanCurvesState::new(notif, supported, dbus) {
-                    Ok(f) => *curves = f,
-                    Err(e) => *do_error = Some(e.to_string()),
-                }
+            let notif = curves.was_notified.clone();
+            match FanCurvesState::new(notif, supported, dbus) {
+                Ok(f) => *curves = f,
+                Err(e) => *do_error = Some(e.to_string()),
             }
         }
     }

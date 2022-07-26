@@ -7,7 +7,10 @@ use std::{
     time::Duration,
 };
 
+#[cfg(feature = "mocking")]
+use crate::mocking::RogDbusClientBlocking;
 use egui::{Button, RichText};
+#[cfg(not(feature = "mocking"))]
 use rog_dbus::RogDbusClientBlocking;
 use rog_supported::SupportedFunctions;
 

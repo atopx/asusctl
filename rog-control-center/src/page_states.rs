@@ -8,11 +8,15 @@ use std::{
 
 use egui::Vec2;
 use rog_aura::{usb::AuraPowerDev, AuraEffect, AuraModeNum};
-use rog_dbus::RogDbusClientBlocking;
 use rog_profiles::{fan_curve_set::FanCurveSet, FanCurvePU, Profile};
 use rog_supported::SupportedFunctions;
 
 use crate::error::Result;
+
+#[cfg(feature = "mocking")]
+use crate::mocking::RogDbusClientBlocking;
+#[cfg(not(feature = "mocking"))]
+use rog_dbus::RogDbusClientBlocking;
 
 #[derive(Clone, Debug)]
 pub struct BiosState {
@@ -35,17 +39,17 @@ impl BiosState {
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
-            post_sound: if supported.rog_bios_ctrl.post_sound && !cfg!(mocking) {
+            post_sound: if supported.rog_bios_ctrl.post_sound {
                 dbus.proxies().rog_bios().post_boot_sound()? != 0
             } else {
                 false
             },
-            dedicated_gfx: if supported.rog_bios_ctrl.dedicated_gfx && !cfg!(mocking) {
+            dedicated_gfx: if supported.rog_bios_ctrl.dedicated_gfx {
                 dbus.proxies().rog_bios().dedicated_graphic_mode()? != 0
             } else {
                 false
             },
-            panel_overdrive: if supported.rog_bios_ctrl.panel_overdrive && !cfg!(mocking) {
+            panel_overdrive: if supported.rog_bios_ctrl.panel_overdrive {
                 dbus.proxies().rog_bios().panel_overdrive()? != 0
             } else {
                 false
@@ -72,12 +76,12 @@ impl ProfilesState {
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
-            list: if supported.platform_profile.platform_profile && !cfg!(mocking) {
+            list: if supported.platform_profile.platform_profile {
                 dbus.proxies().profile().profiles()?
             } else {
                 vec![]
             },
-            current: if supported.platform_profile.platform_profile && !cfg!(mocking) {
+            current: if supported.platform_profile.platform_profile {
                 dbus.proxies().profile().active_profile()?
             } else {
                 Profile::Balanced
@@ -102,12 +106,12 @@ impl FanCurvesState {
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
     ) -> Result<Self> {
-        let profiles = if supported.platform_profile.platform_profile && !cfg!(mocking) {
+        let profiles = if supported.platform_profile.platform_profile {
             dbus.proxies().profile().profiles()?
         } else {
             vec![Profile::Balanced, Profile::Quiet, Profile::Performance]
         };
-        let enabled = if supported.platform_profile.fan_curves && !cfg!(mocking) {
+        let enabled = if supported.platform_profile.fan_curves {
             HashSet::from_iter(
                 dbus.proxies()
                     .profile()
@@ -121,7 +125,7 @@ impl FanCurvesState {
 
         let mut curves: HashMap<Profile, FanCurveSet> = HashMap::new();
         profiles.iter().for_each(|p| {
-            if supported.platform_profile.fan_curves && !cfg!(mocking) {
+            if supported.platform_profile.fan_curves {
                 if let Ok(curve) = dbus.proxies().profile().fan_curve_data(*p) {
                     curves.insert(*p, curve);
                 }
@@ -135,7 +139,7 @@ impl FanCurvesState {
             }
         });
 
-        let show_curve = if supported.platform_profile.fan_curves && !cfg!(mocking) {
+        let show_curve = if supported.platform_profile.fan_curves {
             dbus.proxies().profile().active_profile()?
         } else {
             Profile::Balanced
@@ -170,26 +174,19 @@ impl AuraState {
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
-            current_mode: if !supported.keyboard_led.stock_led_modes.is_empty() && !cfg!(mocking) {
+            current_mode: if !supported.keyboard_led.stock_led_modes.is_empty() {
                 dbus.proxies().led().led_mode()?
             } else {
                 AuraModeNum::Static
             },
 
-            modes: if !supported.keyboard_led.stock_led_modes.is_empty() && !cfg!(mocking) {
+            modes: if !supported.keyboard_led.stock_led_modes.is_empty() {
                 dbus.proxies().led().led_modes()?
             } else {
                 BTreeMap::new()
             },
-            enabled: if !cfg!(mocking) {
-                dbus.proxies().led().leds_enabled()?
-            } else {
-                AuraPowerDev {
-                    x1866: vec![],
-                    x19b6: vec![],
-                }
-            },
-            bright: if !supported.keyboard_led.brightness_set && !cfg!(mocking) {
+            enabled: dbus.proxies().led().leds_enabled()?,
+            bright: if !supported.keyboard_led.brightness_set {
                 dbus.proxies().led().led_brightness()?
             } else {
                 2
@@ -215,12 +212,12 @@ impl AnimeState {
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
-            boot: if supported.anime_ctrl.0 && !cfg!(mocking) {
+            boot: if supported.anime_ctrl.0 {
                 dbus.proxies().anime().boot_enabled()?
             } else {
                 false
             },
-            awake: if supported.anime_ctrl.0 && !cfg!(mocking) {
+            awake: if supported.anime_ctrl.0 {
                 dbus.proxies().anime().awake_enabled()?
             } else {
                 false
@@ -277,9 +274,6 @@ impl PageDataStates {
         supported: &SupportedFunctions,
         dbus: &RogDbusClientBlocking,
     ) -> Result<bool> {
-        #[cfg(feature = "mocking")]
-        return Ok(true);
-
         let mut notified = false;
         if self.was_notified.load(Ordering::SeqCst) {
             self.charge_limit = dbus.proxies().charge().limit()?;

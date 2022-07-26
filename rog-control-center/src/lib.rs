@@ -11,6 +11,8 @@ pub use app::RogApp;
 
 pub mod config;
 pub mod error;
+#[cfg(feature = "mocking")]
+pub mod mocking;
 pub mod notify;
 pub mod page_states;
 pub mod widgets;

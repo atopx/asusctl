@@ -3,8 +3,12 @@ use rog_aura::{
     usb::{AuraDev1866, AuraDev19b6, AuraDevice, AuraPowerDev},
     AuraModeNum, AuraZone, Colour, Speed,
 };
-use rog_dbus::RogDbusClientBlocking;
 use rog_supported::SupportedFunctions;
+
+#[cfg(feature = "mocking")]
+use crate::mocking::RogDbusClientBlocking;
+#[cfg(not(feature = "mocking"))]
+use rog_dbus::RogDbusClientBlocking;
 
 use crate::{
     page_states::{AuraState, PageDataStates},

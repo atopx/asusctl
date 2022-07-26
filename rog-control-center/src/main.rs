@@ -1,10 +1,12 @@
+#[cfg(feature = "mocking")]
+use rog_control_center::mocking::RogDbusClientBlocking;
 use rog_control_center::{
     config::Config, get_ipc_file, notify::start_notifications, on_tmp_dir_exists,
     page_states::PageDataStates, RogApp, SHOW_GUI,
 };
+#[cfg(not(feature = "mocking"))]
 use rog_dbus::RogDbusClientBlocking;
-#[cfg(feature = "mocking")]
-use rog_supported::SupportedFunctions;
+
 use std::{
     io::Read,
     sync::{
@@ -35,13 +37,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fans_notified = Arc::new(AtomicBool::new(false));
     let notifs_enabled = Arc::new(AtomicBool::new(config.enable_notifications));
 
-    #[cfg(not(feature = "mocking"))]
     let states = {
-        let (dbus, _) = RogDbusClientBlocking::new().unwrap();
+        let (dbus, _) = RogDbusClientBlocking::new()?;
         let supported = dbus.proxies().supported().supported_functions().unwrap();
-
-        // TODO: change this to an error instead of the nested unwraps, then use to
-        // display a bare box app with error message.
         PageDataStates::new(
             notifs_enabled.clone(),
             charge_notified.clone(),
@@ -54,9 +52,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &dbus,
         )? // TODO: if error, show alt GUI containing the error message
     };
-
-    #[cfg(feature = "mocking")]
-    let states = PageDataStates::default();
 
     if config.enable_notifications {
         start_notifications(
