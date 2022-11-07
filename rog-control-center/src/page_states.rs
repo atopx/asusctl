@@ -8,10 +8,11 @@ use std::{
 
 use egui::Vec2;
 use rog_aura::{layouts::KeyLayout, usb::AuraPowerDev, AuraEffect, AuraModeNum};
+use rog_dbus::RogDbusClient;
 use rog_platform::{platform::GpuMode, supported::SupportedFunctions};
 use rog_profiles::{fan_curve_set::FanCurveSet, FanCurvePU, Profile};
 
-use crate::{error::Result, RogDbusClientBlocking};
+use crate::{error::Result};
 
 #[derive(Clone, Debug)]
 pub struct BiosState {
@@ -27,25 +28,25 @@ pub struct BiosState {
 }
 
 impl BiosState {
-    pub fn new(
+    pub async fn new(
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
             post_sound: if supported.rog_bios_ctrl.post_sound {
-                dbus.proxies().rog_bios().post_boot_sound()? != 0
+                dbus.proxies().rog_bios().post_boot_sound().await? != 0
             } else {
                 false
             },
             dedicated_gfx: if supported.rog_bios_ctrl.gpu_mux {
-                dbus.proxies().rog_bios().gpu_mux_mode()?
+                dbus.proxies().rog_bios().gpu_mux_mode().await?
             } else {
                 GpuMode::NotSupported
             },
             panel_overdrive: if supported.rog_bios_ctrl.panel_overdrive {
-                dbus.proxies().rog_bios().panel_od()?
+                dbus.proxies().rog_bios().panel_od().await?
             } else {
                 false
             },
@@ -64,22 +65,22 @@ pub struct ProfilesState {
 }
 
 impl ProfilesState {
-    pub fn new(
+    pub async fn new(
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
             list: if supported.platform_profile.platform_profile {
-                let mut list = dbus.proxies().profile().profiles()?;
+                let mut list = dbus.proxies().profile().profiles().await?;
                 list.sort();
                 list
             } else {
                 vec![]
             },
             current: if supported.platform_profile.platform_profile {
-                dbus.proxies().profile().active_profile()?
+                dbus.proxies().profile().active_profile().await?
             } else {
                 Profile::Balanced
             },
@@ -98,13 +99,13 @@ pub struct FanCurvesState {
 }
 
 impl FanCurvesState {
-    pub fn new(
+    pub async fn new(
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         let profiles = if supported.platform_profile.platform_profile {
-            dbus.proxies().profile().profiles()?
+            dbus.proxies().profile().profiles().await?
         } else {
             vec![Profile::Balanced, Profile::Quiet, Profile::Performance]
         };
@@ -112,7 +113,7 @@ impl FanCurvesState {
             HashSet::from_iter(
                 dbus.proxies()
                     .profile()
-                    .enabled_fan_profiles()?
+                    .enabled_fan_profiles().await?
                     .iter()
                     .cloned(),
             )
@@ -121,9 +122,9 @@ impl FanCurvesState {
         };
 
         let mut curves: BTreeMap<Profile, FanCurveSet> = BTreeMap::new();
-        profiles.iter().for_each(|p| {
+        for p in profiles.iter() {
             if supported.platform_profile.fan_curves {
-                if let Ok(curve) = dbus.proxies().profile().fan_curve_data(*p) {
+                if let Ok(curve) = dbus.proxies().profile().fan_curve_data(*p).await {
                     curves.insert(*p, curve);
                 }
             } else {
@@ -134,10 +135,10 @@ impl FanCurvesState {
                 curve.gpu.temp = [20, 30, 40, 50, 70, 80, 90, 100];
                 curves.insert(*p, curve);
             }
-        });
+        }
 
         let show_curve = if supported.platform_profile.fan_curves {
-            dbus.proxies().profile().active_profile()?
+            dbus.proxies().profile().active_profile().await?
         } else {
             Profile::Balanced
         };
@@ -167,27 +168,27 @@ pub struct AuraState {
 }
 
 impl AuraState {
-    pub fn new(
+    pub async fn new(
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
             current_mode: if !supported.keyboard_led.stock_led_modes.is_empty() {
-                dbus.proxies().led().led_mode().unwrap_or_default()
+                dbus.proxies().led().led_mode().await.unwrap_or_default()
             } else {
                 AuraModeNum::Static
             },
 
             modes: if !supported.keyboard_led.stock_led_modes.is_empty() {
-                dbus.proxies().led().led_modes().unwrap_or_default()
+                dbus.proxies().led().led_modes().await.unwrap_or_default()
             } else {
                 BTreeMap::new()
             },
-            enabled: dbus.proxies().led().leds_enabled().unwrap_or_default(),
+            enabled: dbus.proxies().led().leds_enabled().await.unwrap_or_default(),
             bright: if !supported.keyboard_led.brightness_set {
-                dbus.proxies().led().led_brightness().unwrap_or_default()
+                dbus.proxies().led().led_brightness().await.unwrap_or_default()
             } else {
                 2
             },
@@ -222,20 +223,20 @@ pub struct AnimeState {
 }
 
 impl AnimeState {
-    pub fn new(
+    pub async fn new(
         was_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         Ok(Self {
             was_notified,
             boot: if supported.anime_ctrl.0 {
-                dbus.proxies().anime().boot_enabled()?
+                dbus.proxies().anime().boot_enabled().await?
             } else {
                 false
             },
             awake: if supported.anime_ctrl.0 {
-                dbus.proxies().anime().awake_enabled()?
+                dbus.proxies().anime().awake_enabled().await?
             } else {
                 false
             },
@@ -264,7 +265,7 @@ pub struct PageDataStates {
 
 #[allow(clippy::too_many_arguments)]
 impl PageDataStates {
-    pub fn new(
+    pub async fn new(
         keyboard_layout: KeyLayout,
         notifs_enabled: Arc<AtomicBool>,
         charge_notified: Arc<AtomicBool>,
@@ -274,56 +275,56 @@ impl PageDataStates {
         profiles_notified: Arc<AtomicBool>,
         fans_notified: Arc<AtomicBool>,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<Self> {
         Ok(Self {
             keyboard_layout,
             notifs_enabled,
             was_notified: charge_notified,
-            charge_limit: dbus.proxies().charge().charge_control_end_threshold()?,
-            bios: BiosState::new(bios_notified, supported, dbus)?,
-            aura: AuraState::new(aura_notified, supported, dbus)?,
-            anime: AnimeState::new(anime_notified, supported, dbus)?,
-            profiles: ProfilesState::new(profiles_notified, supported, dbus)?,
-            fan_curves: FanCurvesState::new(fans_notified, supported, dbus)?,
+            charge_limit: dbus.proxies().charge().charge_control_end_threshold().await?,
+            bios: BiosState::new(bios_notified, supported, dbus).await?,
+            aura: AuraState::new(aura_notified, supported, dbus).await?,
+            anime: AnimeState::new(anime_notified, supported, dbus).await?,
+            profiles: ProfilesState::new(profiles_notified, supported, dbus).await?,
+            fan_curves: FanCurvesState::new(fans_notified, supported, dbus).await?,
             error: None,
         })
     }
 
-    pub fn refresh_if_notfied(
+    pub async fn refresh_if_notfied(
         &mut self,
         supported: &SupportedFunctions,
-        dbus: &RogDbusClientBlocking,
+        dbus: &RogDbusClient<'static>,
     ) -> Result<bool> {
         let mut notified = false;
         if self.was_notified.load(Ordering::SeqCst) {
-            self.charge_limit = dbus.proxies().charge().charge_control_end_threshold()?;
+            self.charge_limit = dbus.proxies().charge().charge_control_end_threshold().await?;
             self.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.aura.was_notified.load(Ordering::SeqCst) {
-            self.aura = AuraState::new(self.aura.was_notified.clone(), supported, dbus)?;
+            self.aura = AuraState::new(self.aura.was_notified.clone(), supported, dbus).await?;
             self.aura.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.bios.was_notified.load(Ordering::SeqCst) {
-            self.bios = BiosState::new(self.bios.was_notified.clone(), supported, dbus)?;
+            self.bios = BiosState::new(self.bios.was_notified.clone(), supported, dbus).await?;
             self.bios.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.profiles.was_notified.load(Ordering::SeqCst) {
             self.profiles =
-                ProfilesState::new(self.profiles.was_notified.clone(), supported, dbus)?;
+                ProfilesState::new(self.profiles.was_notified.clone(), supported, dbus).await?;
             self.profiles.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }
 
         if self.fan_curves.was_notified.load(Ordering::SeqCst) {
             self.fan_curves =
-                FanCurvesState::new(self.fan_curves.was_notified.clone(), supported, dbus)?;
+                FanCurvesState::new(self.fan_curves.was_notified.clone(), supported, dbus).await?;
             self.fan_curves.was_notified.store(false, Ordering::SeqCst);
             notified = true;
         }

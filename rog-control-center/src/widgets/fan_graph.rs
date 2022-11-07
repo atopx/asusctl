@@ -1,33 +1,29 @@
 use egui::{plot::Points, Ui};
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
 use rog_profiles::{FanCurvePU, Profile};
 
-use crate::{
-    page_states::{FanCurvesState, ProfilesState},
-    RogDbusClientBlocking,
-};
+use crate::page_states::{FanCurvesState, PageDataStates};
 
-pub fn fan_graphs(
+pub async fn fan_graphs(
     supported: &SupportedFunctions,
-    profiles: &mut ProfilesState,
-    curves: &mut FanCurvesState,
-    dbus: &RogDbusClientBlocking,
-    do_error: &mut Option<String>,
+    states: &mut PageDataStates,
+    dbus: &RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     ui.separator();
 
     let mut item = |p: Profile, ui: &mut Ui| {
         ui.group(|ui| {
-            ui.selectable_value(&mut curves.show_curve, p, format!("{p:?}"));
-            ui.add_enabled_ui(curves.show_curve == p, |ui| {
+            ui.selectable_value(&mut states.fan_curves.show_curve, p, format!("{p:?}"));
+            ui.add_enabled_ui(states.fan_curves.show_curve == p, |ui| {
                 ui.selectable_value(
-                    &mut curves.show_graph,
+                    &mut states.fan_curves.show_graph,
                     FanCurvePU::CPU,
                     format!("{:?}", FanCurvePU::CPU),
                 );
                 ui.selectable_value(
-                    &mut curves.show_graph,
+                    &mut states.fan_curves.show_graph,
                     FanCurvePU::GPU,
                     format!("{:?}", FanCurvePU::GPU),
                 );
@@ -36,16 +32,20 @@ pub fn fan_graphs(
     };
 
     ui.horizontal_wrapped(|ui| {
-        for a in curves.curves.iter() {
+        for a in states.fan_curves.curves.iter() {
             item(*a.0, ui);
         }
     });
 
-    let curve = curves.curves.get_mut(&curves.show_curve).unwrap();
+    let curve = states
+        .fan_curves
+        .curves
+        .get_mut(&states.fan_curves.show_curve)
+        .unwrap();
 
     use egui::plot::{Line, Plot, PlotPoints};
 
-    let data = if curves.show_graph == FanCurvePU::CPU {
+    let data = if states.fan_curves.show_graph == FanCurvePU::CPU {
         &mut curve.cpu
     } else {
         &mut curve.gpu
@@ -120,9 +120,10 @@ pub fn fan_graphs(
     if set {
         dbus.proxies()
             .profile()
-            .set_fan_curve(profiles.current, data.clone())
+            .set_fan_curve(states.profiles.current, data.clone())
+            .await
             .map_err(|err| {
-                *do_error = Some(err.to_string());
+                states.error = Some(err.to_string());
             })
             .ok();
     }
@@ -130,16 +131,17 @@ pub fn fan_graphs(
     if reset {
         dbus.proxies()
             .profile()
-            .reset_profile_curves(profiles.current)
+            .reset_profile_curves(states.profiles.current)
+            .await
             .map_err(|err| {
-                *do_error = Some(err.to_string());
+                states.error = Some(err.to_string());
             })
             .ok();
 
-        let notif = curves.was_notified.clone();
-        match FanCurvesState::new(notif, supported, dbus) {
-            Ok(f) => *curves = f,
-            Err(e) => *do_error = Some(e.to_string()),
+        let notif = states.fan_curves.was_notified.clone();
+        match FanCurvesState::new(notif, supported, dbus).await {
+            Ok(f) => states.fan_curves = f,
+            Err(e) => states.error = Some(e.to_string()),
         }
     }
 }

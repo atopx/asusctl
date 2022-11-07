@@ -8,19 +8,19 @@ use std::{
 };
 
 use egui::{Button, RichText};
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
+use tokio::sync::Mutex;
 
-use crate::{
-    config::Config, error::Result, page_states::PageDataStates, Page, RogDbusClientBlocking,
-};
+use crate::{config::Config, error::Result, page_states::PageDataStates, Page};
 
-pub struct RogApp<'a> {
+pub struct RogApp {
     pub page: Page,
-    pub states: PageDataStates,
+    pub states: Arc<Mutex<PageDataStates>>,
     pub supported: SupportedFunctions,
     // TODO: can probably just open and read whenever
     pub config: Config,
-    pub asus_dbus: RogDbusClientBlocking<'a>,
+    pub asus_dbus: RogDbusClient<'static>,
     /// Oscillator in percentage
     pub oscillator1: Arc<AtomicU8>,
     pub oscillator2: Arc<AtomicU8>,
@@ -31,16 +31,15 @@ pub struct RogApp<'a> {
     pub oscillator_toggle: Arc<AtomicBool>,
 }
 
-impl<'a> RogApp<'a> {
+impl RogApp {
     /// Called once before the first frame.
     pub fn new(
         config: Config,
         states: PageDataStates,
+        supported: SupportedFunctions,
+        dbus: RogDbusClient<'static>,
         _cc: &eframe::CreationContext<'_>,
     ) -> Result<Self> {
-        let (dbus, _) = RogDbusClientBlocking::new()?;
-        let supported = dbus.proxies().supported().supported_functions()?;
-
         // Set up an oscillator to run on a thread.
         // Helpful for visual effects like colour pulse.
         let oscillator1 = Arc::new(AtomicU8::new(0));
@@ -89,7 +88,7 @@ impl<'a> RogApp<'a> {
 
         Ok(Self {
             supported,
-            states,
+            states: Arc::new(Mutex::new(states)),
             page: Page::System,
             config,
             asus_dbus: dbus,
@@ -102,60 +101,81 @@ impl<'a> RogApp<'a> {
     }
 }
 
-impl<'a> eframe::App for RogApp<'a> {
+impl eframe::App for RogApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.top_bar(ctx, frame);
+        self.side_panel(ctx);
+
         let Self {
             supported,
             asus_dbus: dbus,
             states,
             ..
         } = self;
-        states
-            .refresh_if_notfied(supported, dbus)
-            .map(|repaint| {
-                if repaint {
-                    ctx.request_repaint();
-                }
-            })
-            .map_err(|e| self.states.error = Some(e.to_string()))
-            .ok();
+
+        let states1 = states.clone();
+        tokio::task::block_in_place(|| async {
+            let mut states = states1.lock().await;
+            states
+                .refresh_if_notfied(supported, dbus)
+                .await
+                .map(|repaint| {
+                    if repaint {
+                        ctx.request_repaint();
+                    }
+                })
+                .map_err(|e| states.error = Some(e.to_string()))
+                .ok();
+        });
 
         let page = self.page;
 
-        self.top_bar(ctx, frame);
-        self.side_panel(ctx);
+        let mut error = false;
 
-        if let Some(err) = self.states.error.clone() {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                ui.heading(RichText::new("Error!").size(28.0));
+        tokio::task::block_in_place(|| async {
+            tokio::task::block_in_place(|| async {
+                if let Some(err) = states.lock().await.error.clone() {
+                    error = true;
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        ui.heading(RichText::new("Error!").size(28.0));
 
-                ui.centered_and_justified(|ui| {
-                    ui.label(RichText::new(format!("The error was: {:?}", err)).size(22.0));
-                });
-            });
-            egui::TopBottomPanel::bottom("error_bar")
-                .default_height(26.0)
-                .show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                        if ui
-                            .add(Button::new(RichText::new("Okay").size(20.0)))
-                            .clicked()
-                        {
-                            self.states.error = None;
-                        }
+                        ui.centered_and_justified(|ui| {
+                            ui.label(RichText::new(format!("The error was: {:?}", err)).size(22.0));
+                        });
                     });
-                });
-        } else if page == Page::System {
-            self.system_page(ctx);
-        } else if page == Page::AuraEffects {
-            self.aura_page(ctx);
-        // TODO: Anime page is not complete
-        // } else if page == Page::AnimeMatrix {
-        //     self.anime_page(ctx);
-        } else if page == Page::FanCurves {
-            self.fan_curve_page(ctx);
+                    let mut states = states.lock().await;
+                    egui::TopBottomPanel::bottom("error_bar")
+                        .default_height(26.0)
+                        .show(ctx, |ui| {
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                                if ui
+                                    .add(Button::new(RichText::new("Okay").size(20.0)))
+                                    .clicked()
+                                {
+                                    states.error = None;
+                                    error = false;
+                                }
+                            });
+                        });
+                }
+            });
+        });
+
+        if error {
+            tokio::task::block_in_place(|| async {
+                if page == Page::System {
+                    self.system_page(ctx);
+                } else if page == Page::AuraEffects {
+                    self.aura_page(ctx);
+                // TODO: Anime page is not complete
+                // } else if page == Page::AnimeMatrix {
+                //     self.anime_page(ctx);
+                } else if page == Page::FanCurves {
+                    //self.fan_curve_page(ctx);
+                }
+            });
         }
     }
 }

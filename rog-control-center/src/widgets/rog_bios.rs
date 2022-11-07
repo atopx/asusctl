@@ -1,9 +1,10 @@
-use crate::{page_states::PageDataStates, RogDbusClientBlocking};
+use crate::{page_states::PageDataStates};
 use egui::Ui;
+use rog_dbus::RogDbusClient;
 use rog_platform::{platform::GpuMode, supported::SupportedFunctions};
 use rog_profiles::Profile;
 
-pub fn platform_profile(states: &mut PageDataStates, dbus: &RogDbusClientBlocking, ui: &mut Ui) {
+pub async fn platform_profile(states: &mut PageDataStates, dbus: &RogDbusClient<'static>, ui: &mut Ui) {
     ui.heading("Platform profile");
 
     let mut changed = false;
@@ -25,7 +26,7 @@ pub fn platform_profile(states: &mut PageDataStates, dbus: &RogDbusClientBlockin
     if changed {
         dbus.proxies()
             .profile()
-            .set_active_profile(states.profiles.current)
+            .set_active_profile(states.profiles.current).await
             .map_err(|err| {
                 states.error = Some(err.to_string());
             })
@@ -33,10 +34,10 @@ pub fn platform_profile(states: &mut PageDataStates, dbus: &RogDbusClientBlockin
     };
 }
 
-pub fn rog_bios_group(
+pub async fn rog_bios_group(
     supported: &SupportedFunctions,
     states: &mut PageDataStates,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     ui.heading("Bios options");
@@ -47,7 +48,7 @@ pub fn rog_bios_group(
     if ui.add(slider).drag_released() {
         dbus.proxies()
             .charge()
-            .set_charge_control_end_threshold(states.charge_limit as u8)
+            .set_charge_control_end_threshold(states.charge_limit as u8).await
             .map_err(|err| {
                 states.error = Some(err.to_string());
             })
@@ -64,7 +65,7 @@ pub fn rog_bios_group(
     {
         dbus.proxies()
             .rog_bios()
-            .set_post_boot_sound(states.bios.post_sound)
+            .set_post_boot_sound(states.bios.post_sound).await
             .map_err(|err| {
                 states.error = Some(err.to_string());
             })
@@ -81,7 +82,7 @@ pub fn rog_bios_group(
     {
         dbus.proxies()
             .rog_bios()
-            .set_panel_od(states.bios.panel_overdrive)
+            .set_panel_od(states.bios.panel_overdrive).await
             .map_err(|err| {
                 states.error = Some(err.to_string());
             })
@@ -116,7 +117,7 @@ pub fn rog_bios_group(
         if changed {
             dbus.proxies()
                 .rog_bios()
-                .set_gpu_mux_mode(states.bios.dedicated_gfx)
+                .set_gpu_mux_mode(states.bios.dedicated_gfx).await
                 .map_err(|err| {
                     states.error = Some(err.to_string());
                 })

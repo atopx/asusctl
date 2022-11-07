@@ -1,14 +1,15 @@
 use crate::{
-    page_states::{FanCurvesState, ProfilesState},
+    page_states::{FanCurvesState, PageDataStates},
     widgets::fan_graphs,
-    RogApp, RogDbusClientBlocking,
+    RogApp,
 };
 use egui::Ui;
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
 use rog_profiles::Profile;
 
-impl<'a> RogApp<'a> {
-    pub fn fan_curve_page(&mut self, ctx: &egui::Context) {
+impl RogApp {
+    pub async fn fan_curve_page(&mut self, ctx: &egui::Context) {
         let Self {
             supported,
             states,
@@ -16,27 +17,26 @@ impl<'a> RogApp<'a> {
             ..
         } = self;
 
+        let mut states = states.lock().await;
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Custom fan curves");
             ui.label("A fan curve is only active when the related profile is active and the curve is enabled");
             Self::fan_curve(
                 supported,
-                &mut states.profiles,
-                &mut states.fan_curves,
-                dbus, &mut states.error,
+                &mut states,
+                dbus,
                 ui,
             );
 
-            fan_graphs(supported, &mut states.profiles, &mut states.fan_curves, dbus, &mut states.error, ui);
+            fan_graphs(supported, &mut states, dbus, ui);
         });
     }
 
     fn fan_curve(
         supported: &SupportedFunctions,
-        profiles: &mut ProfilesState,
-        curves: &mut FanCurvesState,
-        dbus: &RogDbusClientBlocking,
-        do_error: &mut Option<String>,
+        states: &mut PageDataStates,
+        dbus: &RogDbusClient,
         ui: &mut Ui,
     ) {
         ui.separator();
@@ -49,13 +49,16 @@ impl<'a> RogApp<'a> {
                     .add(egui::Checkbox::new(&mut checked, format!("{:?}", p)))
                     .changed()
                 {
-                    dbus.proxies()
-                        .profile()
-                        .set_fan_curve_enabled(p, checked)
-                        .map_err(|err| {
-                            *do_error = Some(err.to_string());
-                        })
-                        .ok();
+                    tokio::task::block_in_place(|| async {
+                        dbus.proxies()
+                            .profile()
+                            .set_fan_curve_enabled(p, checked)
+                            .await
+                            .map_err(|err| {
+                                states.error = Some(err.to_string());
+                            })
+                            .ok();
+                    });
 
                     if !checked {
                         curves.enabled.remove(&p);
@@ -66,24 +69,26 @@ impl<'a> RogApp<'a> {
                 }
             };
 
-            profiles.list.sort();
-            for f in profiles.list.iter() {
-                item(*f, curves, curves.enabled.contains(f));
+            states.profiles.list.sort();
+            for f in states.profiles.list.iter() {
+                item(*f, &mut states.fan_curves, states.fan_curves.enabled.contains(f));
             }
         });
 
         if changed {
-            let selected_profile = curves.show_curve;
-            let selected_pu = curves.show_graph;
+            let selected_profile = states.fan_curves.show_curve;
+            let selected_pu = states.fan_curves.show_graph;
 
-            let notif = curves.was_notified.clone();
-            match FanCurvesState::new(notif, supported, dbus) {
-                Ok(f) => *curves = f,
-                Err(e) => *do_error = Some(e.to_string()),
-            }
+            let notif = states.fan_curves.was_notified.clone();
+            tokio::spawn(async {
+                match FanCurvesState::new(notif, supported, dbus).await {
+                    Ok(f) => states.fan_curves = f,
+                    Err(e) => states.error = Some(e.to_string()),
+                }
+            });
 
-            curves.show_curve = selected_profile;
-            curves.show_graph = selected_pu;
+            states.fan_curves.show_curve = selected_profile;
+            states.fan_curves.show_graph = selected_pu;
         }
     }
 }

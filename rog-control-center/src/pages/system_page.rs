@@ -5,8 +5,8 @@ use crate::{
     RogApp,
 };
 
-impl<'a> RogApp<'a> {
-    pub fn system_page(&mut self, ctx: &egui::Context) {
+impl RogApp {
+    pub async fn system_page(&mut self, ctx: &egui::Context) {
         let Self {
             config,
             supported,
@@ -15,6 +15,8 @@ impl<'a> RogApp<'a> {
             ..
         } = self;
 
+        let mut states = states.lock().await;
+        
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Base settings");
 
@@ -27,13 +29,13 @@ impl<'a> RogApp<'a> {
                         /******************************************************/
                         ui.vertical(|ui| {
                             ui.separator();
-                            app_settings(config, states, ui);
+                            app_settings(config, &mut states, ui);
                         });
 
                         ui.vertical(|ui| {
                             ui.separator();
                             if supported.platform_profile.platform_profile {
-                                platform_profile(states, dbus, ui);
+                                platform_profile(&mut states, dbus, ui);
                             }
                         });
                         ui.end_row();
@@ -41,12 +43,12 @@ impl<'a> RogApp<'a> {
                         /******************************************************/
                         ui.vertical(|ui| {
                             ui.separator();
-                            aura_power_group(supported, states, dbus, ui);
+                            aura_power_group(supported, &mut states, dbus, ui);
                         });
 
                         ui.vertical(|ui| {
                             ui.separator();
-                            rog_bios_group(supported, states, dbus, ui);
+                            rog_bios_group(supported, &mut states, dbus, ui);
                         });
                         ui.end_row();
 
@@ -54,7 +56,7 @@ impl<'a> RogApp<'a> {
                         ui.vertical(|ui| {
                             ui.separator();
                             if supported.anime_ctrl.0 {
-                                anime_power_group(supported, states, dbus, ui);
+                                anime_power_group(supported, &mut states, dbus, ui);
                             }
                         });
                         ui.vertical(|ui| {

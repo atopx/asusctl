@@ -1,18 +1,21 @@
 use egui::{RichText, Ui};
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
 
-use crate::{page_states::PageDataStates, RogDbusClientBlocking};
+use crate::page_states::PageDataStates;
 
-pub fn anime_power_group(
+pub async fn anime_power_group(
     _supported: &SupportedFunctions,
     states: &mut PageDataStates,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     ui.heading("AniMe Matrix Settings");
     ui.label("Options are incomplete. Awake + Boot should work");
 
     let mut changed = false;
+    let mut anime_boot_changed = false;
+    let mut anime_awake_changed = false;
 
     ui.horizontal_wrapped(|ui| {
         ui.vertical(|ui| {
@@ -41,27 +44,12 @@ pub fn anime_power_group(
                     changed = true;
                 }
             });
+
             ui.horizontal_wrapped(|ui| {
-                if ui.checkbox(&mut states.anime.boot, "Enable").changed() {
-                    dbus.proxies()
-                        .anime()
-                        .set_boot_on_off(states.anime.boot)
-                        .map_err(|err| {
-                            states.error = Some(err.to_string());
-                        })
-                        .ok();
-                }
+                anime_boot_changed = ui.checkbox(&mut states.anime.boot, "Enable").changed();
             });
             ui.horizontal_wrapped(|ui| {
-                if ui.checkbox(&mut states.anime.awake, "Enable").changed() {
-                    dbus.proxies()
-                        .anime()
-                        .set_on_off(states.anime.awake)
-                        .map_err(|err| {
-                            states.error = Some(err.to_string());
-                        })
-                        .ok();
-                }
+                anime_awake_changed = ui.checkbox(&mut states.anime.awake, "Enable").changed();
             });
             ui.horizontal_wrapped(|ui| {
                 if ui.checkbox(&mut states.anime.sleep, "Enable").changed() {
@@ -70,4 +58,25 @@ pub fn anime_power_group(
             });
         });
     });
+
+    if anime_boot_changed {
+        dbus.proxies()
+            .anime()
+            .set_boot_on_off(states.anime.boot)
+            .await
+            .map_err(|err| {
+                states.error = Some(err.to_string());
+            })
+            .ok();
+    }
+    if anime_awake_changed {
+        dbus.proxies()
+            .anime()
+            .set_on_off(states.anime.awake)
+            .await
+            .map_err(|err| {
+                states.error = Some(err.to_string());
+            })
+            .ok();
+    }
 }

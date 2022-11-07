@@ -5,18 +5,16 @@ use std::sync::{
 
 use egui::{RichText, Ui};
 use rog_aura::{AuraEffect, AuraModeNum, AuraZone, Colour, Speed};
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
 
-use crate::{
-    page_states::{AuraState, PageDataStates},
-    RogDbusClientBlocking,
-};
+use crate::page_states::{AuraState, PageDataStates};
 
-pub fn aura_modes_group(
+pub async fn aura_modes_group(
     supported: &SupportedFunctions,
     states: &mut PageDataStates,
     freq: &mut Arc<AtomicU8>,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     let mut changed = false;
@@ -171,13 +169,7 @@ pub fn aura_modes_group(
 
     ui.separator();
     ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-        if ui.add(egui::Button::new("Cancel")).clicked() {
-            let notif = states.aura.was_notified.clone();
-            match AuraState::new(notif, supported, dbus) {
-                Ok(a) => states.aura.modes = a.modes,
-                Err(e) => states.error = Some(e.to_string()),
-            }
-        }
+        changed = ui.add(egui::Button::new("Cancel")).clicked();
 
         if ui.add(egui::Button::new("Apply")).clicked() {
             changed = true;
@@ -202,9 +194,16 @@ pub fn aura_modes_group(
     if changed {
         states.aura.current_mode = selected;
 
+        let notif = states.aura.was_notified.clone();
+        match AuraState::new(notif, supported, dbus).await {
+            Ok(a) => states.aura.modes = a.modes,
+            Err(e) => states.error = Some(e.to_string()),
+        }
+
         dbus.proxies()
             .led()
             .set_led_mode(states.aura.modes.get(&selected).unwrap())
+            .await
             .map_err(|err| {
                 states.error = Some(err.to_string());
             })

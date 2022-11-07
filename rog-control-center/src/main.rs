@@ -93,13 +93,29 @@ fn main() -> Result<()> {
         Err(_) => on_tmp_dir_exists().unwrap(),
     };
 
-    let states =
-        setup_page_state_and_notifs(layout.clone(), &config, native_options.clone(), &dbus)
-            .unwrap();
+    let supported = match dbus.proxies().supported().supported_functions() {
+        Ok(s) => s,
+        Err(e) => {
+            eframe::run_native(
+                "ROG Control Center",
+                native_options,
+                Box::new(move |_| Box::new(AppErrorShow::new(e.to_string()))),
+            );
+            SupportedFunctions::default()
+        }
+    };
+    let states = setup_page_state_and_notifs(
+        &supported,
+        layout.clone(),
+        &config,
+        native_options.clone(),
+        &dbus,
+    )
+    .unwrap();
 
     loop {
         if !start_closed {
-            start_app(states.clone(), native_options.clone())?;
+            start_app(supported, states.clone(), native_options.clone(), &dbus)?;
         }
 
         let config = Config::load().unwrap();
@@ -126,6 +142,7 @@ fn main() -> Result<()> {
 }
 
 fn setup_page_state_and_notifs(
+    supported: &SupportedFunctions,
     keyboard_layout: KeyLayout,
     config: &Config,
     native_options: NativeOptions,
@@ -151,18 +168,6 @@ fn setup_page_state_and_notifs(
         notifs_enabled.clone(),
     )?;
 
-    let supported = match dbus.proxies().supported().supported_functions() {
-        Ok(s) => s,
-        Err(e) => {
-            eframe::run_native(
-                "ROG Control Center",
-                native_options,
-                Box::new(move |_| Box::new(AppErrorShow::new(e.to_string()))),
-            );
-            SupportedFunctions::default()
-        }
-    };
-
     PageDataStates::new(
         keyboard_layout,
         notifs_enabled.clone(),
@@ -177,13 +182,20 @@ fn setup_page_state_and_notifs(
     )
 }
 
-fn start_app(states: PageDataStates, native_options: NativeOptions) -> Result<()> {
+fn start_app(
+    supported: SupportedFunctions,
+    states: PageDataStates,
+    native_options: NativeOptions,
+    dbus: &RogDbusClientBlocking,
+) -> Result<()> {
     let mut ipc_file = get_ipc_file().unwrap();
     ipc_file.write_all(&[SHOWING_GUI]).unwrap();
     eframe::run_native(
         "ROG Control Center",
         native_options,
-        Box::new(move |cc| Box::new(RogApp::new(Config::load().unwrap(), states, cc).unwrap())),
+        Box::new(move |cc| {
+            Box::new(RogApp::new(Config::load().unwrap(), states, supported, dbus, cc).unwrap())
+        }),
     );
     Ok(())
 }

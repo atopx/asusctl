@@ -3,32 +3,33 @@ use rog_aura::{
     usb::{AuraDev1866, AuraDev19b6, AuraDevTuf, AuraDevice, AuraPowerDev},
     AuraZone,
 };
+use rog_dbus::RogDbusClient;
 use rog_platform::supported::SupportedFunctions;
 
-use crate::{page_states::PageDataStates, RogDbusClientBlocking};
+use crate::page_states::PageDataStates;
 
-pub fn aura_power_group(
+pub async fn aura_power_group(
     supported: &SupportedFunctions,
     states: &mut PageDataStates,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     ui.heading("LED settings");
 
     match supported.keyboard_led.prod_id {
         AuraDevice::X1854 | AuraDevice::X1869 | AuraDevice::X1866 => {
-            aura_power1(supported, states, dbus, ui)
+            aura_power1(supported, states, dbus, ui).await
         }
-        AuraDevice::X19B6 => aura_power2(supported, states, dbus, ui),
-        AuraDevice::Tuf => aura_power1(supported, states, dbus, ui),
+        AuraDevice::X19B6 => aura_power2(supported, states, dbus, ui).await,
+        AuraDevice::Tuf => aura_power1(supported, states, dbus, ui).await,
         AuraDevice::Unknown => {}
     }
 }
 
-fn aura_power1(
+async fn aura_power1(
     supported: &SupportedFunctions,
     states: &mut PageDataStates,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     let enabled_states = &mut states.aura.enabled;
@@ -137,23 +138,36 @@ fn aura_power1(
             modify_tuf(sleep, AuraDevTuf::Sleep);
             modify_tuf(keyboard, AuraDevTuf::Awake);
 
-            let mut send = |enable: bool, data: Vec<AuraDevTuf>| {
-                let options = AuraPowerDev {
-                    tuf: data,
-                    x1866: vec![],
-                    x19b6: vec![],
-                };
-                // build data to send
-                dbus.proxies()
-                    .led()
-                    .set_leds_power(options, enable)
-                    .map_err(|err| {
-                        states.error = Some(err.to_string());
-                    })
-                    .ok();
-            };
-            send(true, enabled);
-            send(false, disabled);
+            dbus.proxies()
+                .led()
+                .set_leds_power(
+                    AuraPowerDev {
+                        tuf: enabled,
+                        x1866: vec![],
+                        x19b6: vec![],
+                    },
+                    true,
+                )
+                .await
+                .map_err(|err| {
+                    states.error = Some(err.to_string());
+                })
+                .ok();
+            dbus.proxies()
+                .led()
+                .set_leds_power(
+                    AuraPowerDev {
+                        tuf: disabled,
+                        x1866: vec![],
+                        x19b6: vec![],
+                    },
+                    false,
+                )
+                .await
+                .map_err(|err| {
+                    states.error = Some(err.to_string());
+                })
+                .ok();
         } else {
             let mut enabled = Vec::new();
             let mut disabled = Vec::new();
@@ -186,31 +200,44 @@ fn aura_power1(
                 modify_x1866(lightbar, AuraDev1866::Lightbar);
             }
 
-            let mut send = |enable: bool, data: Vec<AuraDev1866>| {
-                let options = AuraPowerDev {
-                    tuf: vec![],
-                    x1866: data,
-                    x19b6: vec![],
-                };
-                // build data to send
-                dbus.proxies()
-                    .led()
-                    .set_leds_power(options, enable)
-                    .map_err(|err| {
-                        states.error = Some(err.to_string());
-                    })
-                    .ok();
-            };
-            send(true, enabled);
-            send(false, disabled);
+            dbus.proxies()
+                .led()
+                .set_leds_power(
+                    AuraPowerDev {
+                        tuf: vec![],
+                        x1866: enabled,
+                        x19b6: vec![],
+                    },
+                    true,
+                )
+                .await
+                .map_err(|err| {
+                    states.error = Some(err.to_string());
+                })
+                .ok();
+            dbus.proxies()
+                .led()
+                .set_leds_power(
+                    AuraPowerDev {
+                        tuf: vec![],
+                        x1866: disabled,
+                        x19b6: vec![],
+                    },
+                    false,
+                )
+                .await
+                .map_err(|err| {
+                    states.error = Some(err.to_string());
+                })
+                .ok();
         }
     }
 }
 
-fn aura_power2(
+async fn aura_power2(
     supported: &SupportedFunctions,
     states: &mut PageDataStates,
-    dbus: &mut RogDbusClientBlocking,
+    dbus: &mut RogDbusClient<'static>,
     ui: &mut Ui,
 ) {
     let enabled_states = &mut states.aura.enabled;
@@ -324,22 +351,35 @@ fn aura_power2(
             modify(*awake_bar, AuraDev19b6::BootBar);
         }
 
-        let mut send = |enable: bool, data: Vec<AuraDev19b6>| {
-            let options = AuraPowerDev {
-                tuf: vec![],
-                x1866: vec![],
-                x19b6: data,
-            };
-            // build data to send
-            dbus.proxies()
-                .led()
-                .set_leds_power(options, enable)
-                .map_err(|err| {
-                    states.error = Some(err.to_string());
-                })
-                .ok();
-        };
-        send(true, enabled);
-        send(false, disabled);
+        dbus.proxies()
+            .led()
+            .set_leds_power(
+                AuraPowerDev {
+                    tuf: vec![],
+                    x1866: vec![],
+                    x19b6: enabled,
+                },
+                true,
+            )
+            .await
+            .map_err(|err| {
+                states.error = Some(err.to_string());
+            })
+            .ok();
+        dbus.proxies()
+            .led()
+            .set_leds_power(
+                AuraPowerDev {
+                    tuf: vec![],
+                    x1866: vec![],
+                    x19b6: disabled,
+                },
+                false,
+            )
+            .await
+            .map_err(|err| {
+                states.error = Some(err.to_string());
+            })
+            .ok();
     }
 }
