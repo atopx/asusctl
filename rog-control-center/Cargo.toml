@@ -40,3 +40,7 @@ png_pong.workspace = true
 
 nix = "^0.26.1"
 tempfile = "3.3.0"
+
+# Translations
+i18nx = "0.1.0"
+formatx = "0.2.0"

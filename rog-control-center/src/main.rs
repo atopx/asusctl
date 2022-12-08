@@ -26,6 +26,9 @@ const BOARD_NAME: &str = "/sys/class/dmi/id/board_name";
 const APP_ICON_PATH: &str = "/usr/share/icons/hicolor/512x512/apps/rog-control-center.png";
 
 fn main() -> Result<()> {
+    i18nx::with_ron!("en", include_str!("../locales/en.ron"));
+    i18nx::locale!("en");
+    
     print_versions();
     let mut logger = env_logger::Builder::new();
     logger

@@ -1,9 +1,10 @@
 use egui::Ui;
+use i18nx::t;
 
 use crate::{config::Config, system_state::SystemState};
 
 pub fn app_settings(config: &mut Config, states: &mut SystemState, ui: &mut Ui) {
-    ui.heading("ROG GUI Settings");
+    ui.heading(t!("setting_title"));
     // ui.label("Options are incomplete. Awake + Boot should work");
 
     let mut enabled_notifications = if let Ok(lock) = states.enabled_notifications.lock() {
@@ -12,21 +13,21 @@ pub fn app_settings(config: &mut Config, states: &mut SystemState, ui: &mut Ui) 
         Default::default()
     };
 
-    ui.label("Application settings");
+    ui.label(t!("setting_heading"));
     let app_changed = ui
-        .checkbox(&mut config.run_in_background, "Run in Background")
+        .checkbox(&mut config.run_in_background, t!("setting_run_in_bg"))
         .clicked()
         || ui
-            .checkbox(&mut config.startup_in_background, "Startup Hidden")
+            .checkbox(&mut config.startup_in_background, t!("setting_start_hidden"))
             .clicked()
         || ui
             .checkbox(
                 &mut enabled_notifications.all_enabled,
-                "Enable Notifications",
+                t!("setting_enable_notifs"),
             )
             .clicked();
 
-    ui.label("Notification settings");
+    ui.label(t!("setting_notifs_heading"));
     let notif_changed = ui
         .checkbox(
             &mut enabled_notifications.receive_notify_gfx_status,

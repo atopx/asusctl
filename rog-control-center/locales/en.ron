@@ -1,0 +1,9 @@
+{
+    "setting_title": "ROG GUI Settings",
+    "setting_heading": "Application settings",
+    "setting_run_in_bg": "Run in Background",
+    "setting_start_hidden": "Startup Hidden",
+    "setting_enable_notifs": "Enable Notifications",
+
+    "setting_notifs_heading": "Notification settings",
+}
