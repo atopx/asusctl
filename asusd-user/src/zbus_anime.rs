@@ -23,7 +23,7 @@
 
 use zbus::dbus_proxy;
 
-#[dbus_proxy(interface = "org.asuslinux.Daemon")]
+#[dbus_proxy(interface = "org.asuslinux.Daemon", assume_defaults = true)]
 trait Daemon {
     /// InsertAsusGif method
     fn insert_asus_gif(

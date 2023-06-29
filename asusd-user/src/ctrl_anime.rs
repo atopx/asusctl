@@ -16,6 +16,7 @@ use crate::config::ConfigAnime;
 use crate::error::Error;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[zvariant(signature = "dict")]
 pub struct Timer {
     type_of: TimeType,
     /// If time type is Timer then this is milliseonds, otherwise it is
