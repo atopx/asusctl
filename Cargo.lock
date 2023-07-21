@@ -2739,6 +2739,7 @@ dependencies = [
  "inotify",
  "log",
  "rog_aura",
+ "rog_profiles",
  "rusb",
  "serde",
  "serde_derive",

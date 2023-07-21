@@ -108,7 +108,7 @@ impl FanCurvesState {
         } else {
             vec![Profile::Balanced, Profile::Quiet, Profile::Performance]
         };
-        let enabled = if supported.platform_profile.fan_curves {
+        let enabled = if !supported.platform_profile.fan_curves.is_empty() {
             dbus.proxies()
                 .profile()
                 .enabled_fan_profiles()?
@@ -121,7 +121,7 @@ impl FanCurvesState {
 
         let mut curves: BTreeMap<Profile, FanCurveSet> = BTreeMap::new();
         for p in &profiles {
-            if supported.platform_profile.fan_curves {
+            if !supported.platform_profile.fan_curves.is_empty() {
                 if let Ok(curve) = dbus.proxies().profile().fan_curve_data(*p) {
                     curves.insert(*p, curve);
                 }
@@ -135,7 +135,7 @@ impl FanCurvesState {
             }
         }
 
-        let show_curve = if supported.platform_profile.fan_curves {
+        let show_curve = if !supported.platform_profile.fan_curves.is_empty() {
             dbus.proxies().profile().active_profile()?
         } else {
             Profile::Balanced

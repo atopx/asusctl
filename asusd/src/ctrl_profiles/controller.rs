@@ -56,13 +56,9 @@ impl GetSupported for CtrlPlatformProfile {
             );
         }
 
-        let res = FanCurveProfiles::is_supported();
-        let mut fan_curve_supported = res.is_err();
-        if let Ok(r) = res {
-            fan_curve_supported = r;
-        };
+        let res = FanCurveProfiles::supported_fans();
 
-        if !fan_curve_supported {
+        if res.is_err() {
             info!(
                 "fan curves kernel interface not found, your laptop does not support this, or the \
                  interface is missing."
@@ -71,7 +67,7 @@ impl GetSupported for CtrlPlatformProfile {
 
         PlatformProfileFunctions {
             platform_profile: Profile::is_platform_profile_supported(),
-            fan_curves: fan_curve_supported,
+            fan_curves: res.unwrap_or_default(),
         }
     }
 }

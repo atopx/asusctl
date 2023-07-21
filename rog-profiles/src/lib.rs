@@ -135,6 +135,24 @@ impl Display for Profile {
 pub enum FanCurvePU {
     CPU,
     GPU,
+    MID,
+}
+
+impl FanCurvePU {
+    fn which_fans(device: &Device) -> Vec<Self> {
+        let mut fans = Vec::with_capacity(3);
+        for attr in device.attributes() {
+            let tmp = attr.name().to_string_lossy();
+            for fan in [Self::CPU, Self::GPU, Self::MID] {
+                let pwm_num: char = fan.into();
+                let pwm_enable = format!("pwm{pwm_num}_enable");
+                if tmp.contains(&pwm_enable) {
+                    fans.push(fan);
+                }
+            }
+        }
+        fans
+    }
 }
 
 impl From<FanCurvePU> for &str {
@@ -142,6 +160,17 @@ impl From<FanCurvePU> for &str {
         match pu {
             FanCurvePU::CPU => "cpu",
             FanCurvePU::GPU => "gpu",
+            FanCurvePU::MID => "mid",
+        }
+    }
+}
+
+impl From<FanCurvePU> for char {
+    fn from(pu: FanCurvePU) -> char {
+        match pu {
+            FanCurvePU::CPU => '1',
+            FanCurvePU::GPU => '2',
+            FanCurvePU::MID => '3',
         }
     }
 }
@@ -153,6 +182,7 @@ impl std::str::FromStr for FanCurvePU {
         match fan.to_ascii_lowercase().trim() {
             "cpu" => Ok(FanCurvePU::CPU),
             "gpu" => Ok(FanCurvePU::GPU),
+            "mid" => Ok(FanCurvePU::MID),
             _ => Err(ProfileError::ParseProfileName),
         }
     }
@@ -180,23 +210,20 @@ impl FanCurveProfiles {
         enumerator.match_subsystem("hwmon")?;
 
         for device in enumerator.scan_devices()? {
-            // if device.parent_with_subsystem("platform")?.is_some() {
             if let Some(name) = device.attribute_value("name") {
                 if name == "asus_custom_fan_curve" {
                     return Ok(device);
                 }
             }
-            // }
         }
         Err(ProfileError::NotSupported)
     }
 
-    pub fn is_supported() -> Result<bool, ProfileError> {
-        if Self::get_device().is_ok() {
-            return Ok(true);
-        }
-
-        Ok(false)
+    /// Return an array of `FanCurvePU`. An empty array indicates no support for
+    /// Curves.
+    pub fn supported_fans() -> Result<Vec<FanCurvePU>, ProfileError> {
+        let device = Self::get_device()?;
+        Ok(FanCurvePU::which_fans(&device))
     }
 
     ///
@@ -204,6 +231,7 @@ impl FanCurveProfiles {
         let mut tmp = FanCurveSet::default();
         tmp.read_cpu_from_device(device);
         tmp.read_gpu_from_device(device);
+        tmp.read_mid_from_device(device);
         match profile {
             Profile::Balanced => self.balanced = tmp,
             Profile::Performance => self.performance = tmp,
@@ -224,10 +252,12 @@ impl FanCurveProfiles {
         // Do reset
         device.set_attribute_value("pwm1_enable", "3")?;
         device.set_attribute_value("pwm2_enable", "3")?;
+        // TODO: MID FAN
         // Then read
         let mut tmp = FanCurveSet::default();
         tmp.read_cpu_from_device(device);
         tmp.read_gpu_from_device(device);
+        tmp.read_mid_from_device(device);
         match profile {
             Profile::Balanced => self.balanced = tmp,
             Profile::Performance => self.performance = tmp,
@@ -252,6 +282,7 @@ impl FanCurveProfiles {
         };
         fans.write_cpu_fan(device)?;
         fans.write_gpu_fan(device)?;
+        fans.write_mid_fan(device)?;
         Ok(())
     }
 
@@ -306,14 +337,17 @@ impl FanCurveProfiles {
             Profile::Balanced => match pu {
                 FanCurvePU::CPU => &self.balanced.cpu,
                 FanCurvePU::GPU => &self.balanced.gpu,
+                FanCurvePU::MID => &self.balanced.mid,
             },
             Profile::Performance => match pu {
                 FanCurvePU::CPU => &self.performance.cpu,
                 FanCurvePU::GPU => &self.performance.gpu,
+                FanCurvePU::MID => &self.performance.mid,
             },
             Profile::Quiet => match pu {
                 FanCurvePU::CPU => &self.quiet.cpu,
                 FanCurvePU::GPU => &self.quiet.gpu,
+                FanCurvePU::MID => &self.quiet.mid,
             },
         }
     }
@@ -323,14 +357,17 @@ impl FanCurveProfiles {
             Profile::Balanced => match curve.fan {
                 FanCurvePU::CPU => self.balanced.cpu = curve,
                 FanCurvePU::GPU => self.balanced.gpu = curve,
+                FanCurvePU::MID => self.balanced.mid = curve,
             },
             Profile::Performance => match curve.fan {
                 FanCurvePU::CPU => self.performance.cpu = curve,
                 FanCurvePU::GPU => self.performance.gpu = curve,
+                FanCurvePU::MID => self.performance.mid = curve,
             },
             Profile::Quiet => match curve.fan {
                 FanCurvePU::CPU => self.quiet.cpu = curve,
                 FanCurvePU::GPU => self.quiet.gpu = curve,
+                FanCurvePU::MID => self.quiet.mid = curve,
             },
         }
         Ok(())
