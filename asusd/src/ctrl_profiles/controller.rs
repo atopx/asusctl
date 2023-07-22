@@ -67,7 +67,7 @@ impl GetSupported for CtrlPlatformProfile {
 
         PlatformProfileFunctions {
             platform_profile: Profile::is_platform_profile_supported(),
-            fan_curves: res.unwrap_or_default(),
+            fans: res.unwrap_or_default(),
         }
     }
 }
@@ -109,10 +109,10 @@ impl CtrlPlatformProfile {
                         let active = Profile::get_active_profile().unwrap_or(Profile::Balanced);
 
                         if let Some(curves) = controller.fan_curves.as_ref() {
-                            info!(
-                                "{MOD_NAME}: {active:?}: {}",
-                                String::from(curves.profiles().get_fan_curves_for(active))
-                            );
+                            info!("{MOD_NAME}: {active:?}:");
+                            for curve in curves.profiles().get_fan_curves_for(active) {
+                                info!("{}", String::from(curve));
+                            }
                         }
                     }
                     if let Some(curves) = controller.fan_curves.as_ref() {

@@ -1,3 +1,4 @@
+use log::trace;
 use serde_derive::{Deserialize, Serialize};
 use typeshare::typeshare;
 use udev::Device;
@@ -8,7 +9,8 @@ use crate::error::ProfileError;
 use crate::FanCurvePU;
 
 pub(crate) fn pwm_str(fan: char, index: usize) -> String {
-    let mut buf = "pwm1_auto_point1_pwm".to_owned();
+    // The char 'X' is replaced via indexing
+    let mut buf = "pwmX_auto_pointX_pwm".to_owned();
     unsafe {
         let tmp = buf.as_bytes_mut();
         tmp[3] = fan as u8;
@@ -18,7 +20,8 @@ pub(crate) fn pwm_str(fan: char, index: usize) -> String {
 }
 
 pub(crate) fn temp_str(fan: char, index: usize) -> String {
-    let mut buf = "pwm1_auto_point1_temp".to_owned();
+    // The char 'X' is replaced via indexing
+    let mut buf = "pwmX_auto_pointX_temp".to_owned();
     unsafe {
         let tmp = buf.as_bytes_mut();
         tmp[3] = fan as u8;
@@ -34,6 +37,7 @@ pub struct CurveData {
     pub fan: FanCurvePU,
     pub pwm: [u8; 8],
     pub temp: [u8; 8],
+    pub enabled: bool,
 }
 
 impl From<&CurveData> for String {
@@ -65,7 +69,7 @@ impl std::str::FromStr for CurveData {
     type Err = ProfileError;
 
     /// Parse a string to the correct values that the fan curve kernel driver
-    /// expects
+    /// expects. The returned `CurveData` is not enabled by default.
     ///
     /// If the fan curve is given with percentage char '%' then the fan power
     /// values are converted otherwise the expected fan power range is
@@ -126,6 +130,7 @@ impl std::str::FromStr for CurveData {
             fan: FanCurvePU::CPU,
             pwm,
             temp,
+            enabled: false,
         })
     }
 }
@@ -144,7 +149,7 @@ impl CurveData {
         }
     }
 
-    fn read_from_device(&mut self, device: &Device) {
+    pub fn read_from_device(&mut self, device: &Device) {
         for attr in device.attributes() {
             let tmp = attr.name().to_string_lossy();
             let pwm_num: char = self.fan.into();
@@ -158,109 +163,25 @@ impl CurveData {
         }
     }
 
-    fn init_if_zeroed(&mut self, device: &mut Device) -> std::io::Result<()> {
-        if self.pwm == [0u8; 8] && self.temp == [0u8; 8] {
-            // Need to reset the device to defaults to get the proper profile defaults
-            let pwm_num: char = self.fan.into();
-            device.set_attribute_value(format!("pwm{pwm_num}_enable"), "3")?;
-            self.read_from_device(device);
-        }
-        Ok(())
-    }
-
     /// Write this curve to the device fan specified by `self.fan`
-    fn write_to_device(&self, device: &mut Device, enable: bool) -> std::io::Result<()> {
+    pub fn write_to_device(&self, device: &mut Device) -> std::io::Result<()> {
         let pwm_num: char = self.fan.into();
-        let enable = if enable { "1" } else { "2" };
+        let enable = if self.enabled { "1" } else { "2" };
 
         for (index, out) in self.pwm.iter().enumerate() {
             let pwm = pwm_str(pwm_num, index);
+            trace!("writing {pwm}");
             device.set_attribute_value(&pwm, &out.to_string())?;
         }
 
         for (index, out) in self.temp.iter().enumerate() {
             let temp = temp_str(pwm_num, index);
+            trace!("writing {temp}");
             device.set_attribute_value(&temp, &out.to_string())?;
         }
 
         // Enable must be done *after* all points are written
         device.set_attribute_value(format!("pwm{pwm_num}_enable"), enable)
-    }
-}
-
-// TODO: convert to an array for CurveData since the CurveData contains the fan
-// type
-/// A `FanCurveSet` contains both CPU and GPU fan curve data
-#[typeshare]
-#[cfg_attr(feature = "dbus", derive(Type))]
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct FanCurveSet {
-    pub enabled: bool,
-    pub cpu: CurveData,
-    pub gpu: CurveData,
-    pub mid: CurveData,
-}
-
-impl Default for FanCurveSet {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            cpu: CurveData {
-                fan: FanCurvePU::CPU,
-                pwm: [0u8; 8],
-                temp: [0u8; 8],
-            },
-            gpu: CurveData {
-                fan: FanCurvePU::GPU,
-                pwm: [0u8; 8],
-                temp: [0u8; 8],
-            },
-            mid: CurveData {
-                fan: FanCurvePU::GPU,
-                pwm: [0u8; 8],
-                temp: [0u8; 8],
-            },
-        }
-    }
-}
-
-impl From<&FanCurveSet> for String {
-    fn from(s: &FanCurveSet) -> Self {
-        format!(
-            "Enabled: {}, {}, {}",
-            s.enabled,
-            String::from(&s.cpu),
-            String::from(&s.gpu),
-        )
-    }
-}
-
-impl FanCurveSet {
-    pub(crate) fn read_cpu_from_device(&mut self, device: &Device) {
-        self.cpu.read_from_device(device);
-    }
-
-    pub(crate) fn read_gpu_from_device(&mut self, device: &Device) {
-        self.gpu.read_from_device(device);
-    }
-
-    pub(crate) fn read_mid_from_device(&mut self, device: &Device) {
-        self.mid.read_from_device(device);
-    }
-
-    pub(crate) fn write_cpu_fan(&mut self, device: &mut Device) -> std::io::Result<()> {
-        self.cpu.init_if_zeroed(device)?;
-        self.cpu.write_to_device(device, self.enabled)
-    }
-
-    pub(crate) fn write_gpu_fan(&mut self, device: &mut Device) -> std::io::Result<()> {
-        self.gpu.init_if_zeroed(device)?;
-        self.gpu.write_to_device(device, self.enabled)
-    }
-
-    pub(crate) fn write_mid_fan(&mut self, device: &mut Device) -> std::io::Result<()> {
-        self.mid.init_if_zeroed(device)?;
-        self.mid.write_to_device(device, self.enabled)
     }
 }
 
@@ -324,14 +245,14 @@ mod tests {
         assert_eq!(temp_str('1', 7), "pwm1_auto_point8_temp");
     }
 
-    #[test]
-    fn set_to_string() {
-        let set = FanCurveSet::default();
-        let string = String::from(&set);
-        assert_eq!(
-            string.as_str(),
-            "Enabled: false, CPU: 0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%, GPU: \
-             0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%"
-        );
-    }
+    // #[test]
+    // fn set_to_string() {
+    //     let set = FanCurveSet::default();
+    //     let string = String::from(&set);
+    //     assert_eq!(
+    //         string.as_str(),
+    //         "Enabled: false, CPU:
+    // 0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%, GPU: \          0c:
+    // 0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%,0c:0%"     );
+    // }
 }
