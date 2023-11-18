@@ -48,9 +48,13 @@ versions.workspace = true
 nix = "^0.26.1"
 tempfile = "3.3.0"
 
-# [patch.crates-io]
-# egui = { git = "https://github.com/flukejones/egui" }
-# eframe = { git = "https://github.com/flukejones/egui" }
+[dependencies.slint]
+version = "1.3"
+default-features = false
+features = ["std", "compat-1-0", "backend-winit-wayland", "backend-linuxkms", "renderer-femtovg"]
+
+[build-dependencies.slint-build]
+version = "1.3"
 
 [dev-dependencies]
 cargo-husky.workspace = true

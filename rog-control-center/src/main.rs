@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::thread::{self, sleep, spawn};
 use std::time::Duration;
 
 use eframe::HardwareAcceleration;
@@ -14,13 +14,12 @@ use rog_aura::layouts::KeyLayout;
 use rog_control_center::cli_options::CliStart;
 use rog_control_center::config::Config;
 use rog_control_center::error::Result;
-use rog_control_center::startup_error::AppErrorShow;
+use rog_control_center::slint::ComponentHandle;
 use rog_control_center::system_state::SystemState;
-use rog_control_center::tray::init_tray;
 use rog_control_center::update_and_notify::{start_notifications, EnabledNotifications};
 use rog_control_center::{
-    get_ipc_file, on_tmp_dir_exists, print_versions, RogApp, RogDbusClientBlocking, SHOWING_GUI,
-    SHOW_GUI,
+    get_ipc_file, on_tmp_dir_exists, print_versions, MainWindow, RogDbusClientBlocking,
+    SHOWING_GUI, SHOW_GUI,
 };
 use tokio::runtime::Runtime;
 
@@ -70,27 +69,15 @@ fn main() -> Result<()> {
 
     let (dbus, _) = RogDbusClientBlocking::new()
         .map_err(|e| {
-            eframe::run_native(
-                "ROG Control Center",
-                native_options.clone(),
-                Box::new(move |_| Box::new(AppErrorShow::new(e.to_string()))),
-            )
-            .map_err(|e| error!("{e}"))
-            .ok();
+            // TODO: show an error window
         })
         .unwrap();
 
-    let supported_properties = match dbus.proxies().platform().supported_properties() {
+    let _supported_properties = match dbus.proxies().platform().supported_properties() {
         Ok(s) => s,
-        Err(e) => {
-            eframe::run_native(
-                "ROG Control Center",
-                native_options.clone(),
-                Box::new(move |_| Box::new(AppErrorShow::new(e.to_string()))),
-            )
-            .map_err(|e| error!("{e}"))
-            .ok();
-            vec![]
+        Err(_e) => {
+            // TODO: show an error window
+            Vec::default()
         }
     };
 
@@ -186,10 +173,6 @@ fn main() -> Result<()> {
         &config,
     )?;
 
-    if config.enable_tray_icon {
-        init_tray(supported_properties, states.clone());
-    }
-
     let mut bg_check_spawned = false;
     loop {
         if !running_in_bg.load(Ordering::Relaxed) {
@@ -197,15 +180,8 @@ fn main() -> Result<()> {
             let states = states.clone();
             let mut ipc_file = get_ipc_file()?;
             ipc_file.write_all(&[SHOWING_GUI])?;
-            eframe::run_native(
-                "ROG Control Center",
-                native_options.clone(),
-                Box::new(move |cc| {
-                    let cfg = Config::load().unwrap();
-                    let app = RogApp::new(cfg, states, cc);
-                    Box::new(app.unwrap())
-                }),
-            )?;
+            let ui = setup_window(states);
+            ui.run().unwrap();
 
             running_in_bg.store(true, Ordering::SeqCst);
             bg_check_spawned = false;
@@ -238,6 +214,45 @@ fn main() -> Result<()> {
         thread::sleep(Duration::from_millis(500));
     }
     Ok(())
+}
+
+fn setup_window(states: Arc<Mutex<SystemState>>) -> MainWindow {
+    let ui = MainWindow::new().unwrap();
+    // Example of how to do work in another thread.
+    // The thread itself can keep its own state, and then update vars in the UI
+    // when required.
+    let ui_handle = ui.as_weak();
+    spawn(move || loop {
+        sleep(Duration::from_secs(1));
+        // This is where the actual update happens
+        ui_handle
+            .upgrade_in_event_loop(move |handle| {
+                // handle.set_counter(handle.get_counter() + 1);
+            })
+            .ok();
+    });
+
+    // let ui_handle = ui.as_weak();
+    // ui_handle
+    //     .upgrade_in_event_loop(move |handle| {
+    //         handle.set_parameters(VecModel::from_slice(
+    //             &handle.initialise_parameters(test_load_parameters()),
+    //         ));
+    //     })
+    //     .ok();
+
+    // Can still get UI ref after run. So different callbacks can be assigned.
+    let ui_handle = ui.as_weak();
+    ui.on_request_increase_value(move || {
+        let ui = ui_handle.unwrap();
+        // ui.set_counter(ui.get_counter() + 1);
+    });
+
+    ui.on_exit_app(move || {
+        slint::quit_event_loop().unwrap();
+    });
+
+    ui
 }
 
 fn setup_page_state_and_notifs(

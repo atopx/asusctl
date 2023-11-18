@@ -3,13 +3,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
-use egui::Vec2;
 use log::error;
 use rog_anime::{Animations, DeviceState};
-use rog_aura::aura_detection::PowerZones;
 use rog_aura::layouts::KeyLayout;
-use rog_aura::usb::{AuraDevice, AuraPowerDev};
-use rog_aura::{AuraEffect, AuraModeNum, AuraZone, LedBrightness};
+use rog_aura::usb::AuraPowerDev;
+use rog_aura::{AuraEffect, AuraModeNum, LedBrightness};
 use rog_platform::platform::{GpuMode, PlatformPolicy};
 use rog_profiles::fan_curve_set::CurveData;
 use rog_profiles::FanCurvePU;
@@ -69,7 +67,7 @@ pub struct FanCurvesState {
     pub show_graph: FanCurvePU,
     pub curves: BTreeMap<PlatformPolicy, Vec<CurveData>>,
     pub available_fans: HashSet<FanCurvePU>,
-    pub drag_delta: Vec2,
+    // pub drag_delta: Vec2,
 }
 
 impl FanCurvesState {
@@ -102,7 +100,7 @@ impl FanCurvesState {
             show_graph: FanCurvePU::CPU,
             curves,
             available_fans,
-            drag_delta: Vec2::default(),
+            // drag_delta: Vec2::default(),
         })
     }
 }
@@ -112,9 +110,6 @@ pub struct AuraState {
     pub current_mode: AuraModeNum,
     pub modes: BTreeMap<AuraModeNum, AuraEffect>,
     pub enabled: AuraPowerDev,
-    pub dev_type: AuraDevice,
-    pub supported_basic_zones: Vec<AuraZone>,
-    pub supported_power_zones: Vec<PowerZones>,
     /// Brightness from 0-3
     pub bright: LedBrightness,
     pub wave_red: [u8; 22],
@@ -137,17 +132,6 @@ impl AuraState {
                 BTreeMap::new()
             },
             enabled: dbus.proxies().aura().led_power().unwrap_or_default(),
-            supported_basic_zones: dbus
-                .proxies()
-                .aura()
-                .supported_basic_zones()
-                .unwrap_or_default(),
-            supported_power_zones: dbus
-                .proxies()
-                .aura()
-                .supported_power_zones()
-                .unwrap_or_default(),
-            dev_type: dbus.proxies().aura().device_type().unwrap_or_default(),
             bright: dbus.proxies().aura().brightness().unwrap_or_default(),
             wave_red: [0u8; 22],
             wave_green: [0u8; 22],
