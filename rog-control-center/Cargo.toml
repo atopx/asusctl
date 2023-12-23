@@ -48,6 +48,9 @@ versions.workspace = true
 nix = "^0.26.1"
 tempfile = "3.3.0"
 
+i-slint-backend-winit = "1.3"
+winit = "*"
+
 [dependencies.slint]
 version = "1.3"
 default-features = false
