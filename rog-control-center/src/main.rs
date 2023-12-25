@@ -23,7 +23,7 @@ use rog_control_center::{
 };
 use tokio::runtime::Runtime;
 use winit::monitor::VideoMode;
-use winit::window::{WindowLevel, Fullscreen};
+use winit::window::{Fullscreen, WindowLevel};
 
 #[cfg(not(feature = "mocking"))]
 const DATA_DIR: &str = "/usr/share/rog-gui/";
@@ -219,7 +219,8 @@ fn main() -> Result<()> {
 }
 
 fn setup_window(states: Arc<Mutex<SystemState>>) -> MainWindow {
-    // slint::platform::set_platform(Box::new(i_slint_backend_winit::Backend::new().unwrap())).unwrap();
+    // slint::platform::set_platform(Box::new(i_slint_backend_winit::Backend::new().
+    // unwrap())).unwrap();
     let ui = MainWindow::new().unwrap();
     // Example of how to do work in another thread.
     // The thread itself can keep its own state, and then update vars in the UI
@@ -232,14 +233,16 @@ fn setup_window(states: Arc<Mutex<SystemState>>) -> MainWindow {
             .upgrade_in_event_loop(move |handle| {
                 // handle.set_counter(handle.get_counter() + 1);
                 use i_slint_backend_winit::WinitWindowAccessor;
-                handle.window().with_winit_window(|winit_window: &winit::window::Window| {
-                    // winit_window.set_fullscreen(Some(Fullscreen::Borderless(None)));
-                    if !winit_window.has_focus() {
-                        dbg!("Focus lost");
-                        // slint::quit_event_loop().unwrap();
-                        // handle.hide().unwrap();
-                    }
-                });
+                handle
+                    .window()
+                    .with_winit_window(|winit_window: &winit::window::Window| {
+                        // winit_window.set_fullscreen(Some(Fullscreen::Borderless(None)));
+                        if !winit_window.has_focus() {
+                            dbg!("Focus lost");
+                            // slint::quit_event_loop().unwrap();
+                            // handle.hide().unwrap();
+                        }
+                    });
             })
             .ok();
     });
