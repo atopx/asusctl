@@ -6,7 +6,6 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, sleep, spawn};
 use std::time::Duration;
 
-use eframe::HardwareAcceleration;
 use gumdrop::Options;
 use log::{debug, error, warn, LevelFilter};
 use rog_aura::aura_detection::{LaptopLedData, LedSupportFile};
@@ -59,15 +58,6 @@ fn main() -> Result<()> {
     let rt = Runtime::new().expect("Unable to create Runtime");
     // Enter the runtime so that `tokio::spawn` is available immediately.
     let _enter = rt.enter();
-
-    let native_options = eframe::NativeOptions {
-        vsync: true,
-        hardware_acceleration: HardwareAcceleration::Preferred,
-        // min_window_size: Some(egui::vec2(960.0, 670.0)),
-        // max_window_size: Some(egui::vec2(960.0, 670.0)),
-        run_and_return: true,
-        ..Default::default()
-    };
 
     let (dbus, _) = RogDbusClientBlocking::new()
         .map_err(|e| {
