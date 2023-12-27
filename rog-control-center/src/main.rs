@@ -15,14 +15,15 @@ use rog_control_center::config::Config;
 use rog_control_center::error::Result;
 use rog_control_center::slint::ComponentHandle;
 use rog_control_center::system_state::SystemState;
+use rog_control_center::tray::init_tray;
 use rog_control_center::update_and_notify::{start_notifications, EnabledNotifications};
 use rog_control_center::{
     get_ipc_file, on_tmp_dir_exists, print_versions, MainWindow, RogDbusClientBlocking,
     SHOWING_GUI, SHOW_GUI,
 };
 use tokio::runtime::Runtime;
-use winit::monitor::VideoMode;
-use winit::window::{Fullscreen, WindowLevel};
+// use winit::monitor::VideoMode;
+// use winit::window::{Fullscreen, WindowLevel};
 
 #[cfg(not(feature = "mocking"))]
 const DATA_DIR: &str = "/usr/share/rog-gui/";
@@ -65,7 +66,7 @@ fn main() -> Result<()> {
         })
         .unwrap();
 
-    let _supported_properties = match dbus.proxies().platform().supported_properties() {
+    let supported_properties = match dbus.proxies().platform().supported_properties() {
         Ok(s) => s,
         Err(_e) => {
             // TODO: show an error window
@@ -165,6 +166,10 @@ fn main() -> Result<()> {
         &config,
     )?;
 
+    if config.enable_tray_icon {
+        init_tray(supported_properties, states.clone());
+    }
+
     let mut bg_check_spawned = false;
     loop {
         if !running_in_bg.load(Ordering::Relaxed) {
@@ -228,7 +233,6 @@ fn setup_window(states: Arc<Mutex<SystemState>>) -> MainWindow {
                     .with_winit_window(|winit_window: &winit::window::Window| {
                         // winit_window.set_fullscreen(Some(Fullscreen::Borderless(None)));
                         if !winit_window.has_focus() {
-                            dbg!("Focus lost");
                             // slint::quit_event_loop().unwrap();
                             // handle.hide().unwrap();
                         }
