@@ -11,8 +11,8 @@ edition = "2021"
 
 [dependencies]
 
-libappindicator = "0.8" # Tray icon
-gtk = "0.16"
+libappindicator = "0.9" # Tray icon
+gtk = "0.18"
 
 asusd = { path = "../asusd" }
 rog_anime = { path = "../rog-anime" }

@@ -21,6 +21,7 @@ use rog_control_center::{
     get_ipc_file, on_tmp_dir_exists, print_versions, MainWindow, RogDbusClientBlocking,
     SHOWING_GUI, SHOW_GUI,
 };
+use slint::CloseRequestResponse;
 use tokio::runtime::Runtime;
 // use winit::monitor::VideoMode;
 // use winit::window::{Fullscreen, WindowLevel};
@@ -171,20 +172,31 @@ fn main() -> Result<()> {
     }
 
     let mut bg_check_spawned = false;
+    let ui = setup_window(states.clone());
+    let rbg = running_in_bg.clone();
+    ui.window().on_close_requested(move || {
+        rbg.store(true, Ordering::SeqCst);
+        CloseRequestResponse::HideWindow
+    });
+
     loop {
         if !running_in_bg.load(Ordering::Relaxed) {
             // blocks until window is closed
-            let states = states.clone();
             let mut ipc_file = get_ipc_file()?;
             ipc_file.write_all(&[SHOWING_GUI])?;
-            let ui = setup_window(states);
-            ui.run().unwrap();
 
-            running_in_bg.store(true, Ordering::SeqCst);
-            bg_check_spawned = false;
-        }
+            dbg!(ui.window().is_visible());
+            if !ui.window().is_visible() {
+                ui.window().show().unwrap();
+                dbg!(ui.window().is_visible());
+            }
+            slint::run_event_loop().unwrap();
+        } else if let Ok(lock) = states.try_lock() {
+            if ui.window().is_visible() {
+                ui.window().hide().unwrap();
+                dbg!("SHOW NOW");
+            }
 
-        if let Ok(lock) = states.try_lock() {
             if !lock.run_in_bg || cli_parsed.board_name.is_some() || cli_parsed.layout_viewing {
                 break;
             }
@@ -239,22 +251,6 @@ fn setup_window(states: Arc<Mutex<SystemState>>) -> MainWindow {
                     });
             })
             .ok();
-    });
-
-    // let ui_handle = ui.as_weak();
-    // ui_handle
-    //     .upgrade_in_event_loop(move |handle| {
-    //         handle.set_parameters(VecModel::from_slice(
-    //             &handle.initialise_parameters(test_load_parameters()),
-    //         ));
-    //     })
-    //     .ok();
-
-    // Can still get UI ref after run. So different callbacks can be assigned.
-    let ui_handle = ui.as_weak();
-    ui.on_request_increase_value(move || {
-        let ui = ui_handle.unwrap();
-        // ui.set_counter(ui.get_counter() + 1);
     });
 
     ui.on_exit_app(move || {
