@@ -1,14 +1,15 @@
-use rog_aura::usb::AuraPowerDev;
-use rog_dbus::zbus_aura::AuraProxy;
 use std::sync::{Arc, Mutex};
 
+use rog_aura::usb::AuraPowerDev;
+use rog_dbus::zbus_aura::AuraProxy;
 use slint::{ComponentHandle, Model, RgbaColor, SharedString};
 use zbus::proxy::CacheProperties;
 
 use crate::config::Config;
 use crate::ui::show_toast;
-use crate::{set_ui_callbacks, set_ui_props_async};
-use crate::{AuraPageData, MainWindow, PowerZones as SlintPowerZones};
+use crate::{
+    set_ui_callbacks, set_ui_props_async, AuraPageData, MainWindow, PowerZones as SlintPowerZones,
+};
 
 fn decode_hex(s: &str) -> RgbaColor<u8> {
     let s = s.trim_start_matches('#');

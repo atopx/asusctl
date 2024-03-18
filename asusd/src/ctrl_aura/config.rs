@@ -107,6 +107,8 @@ impl From<&AuraPowerConfig> for AuraPowerDev {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 // #[serde(default)]
 pub struct AuraConfig {
+    #[serde(skip)]
+    pub config_name: String,
     pub brightness: LedBrightness,
     pub current_mode: AuraModeNum,
     pub builtins: BTreeMap<AuraModeNum, AuraEffect>,
@@ -134,13 +136,17 @@ impl StdConfig for AuraConfig {
     }
 
     fn file_name(&self) -> String {
-        CONFIG_FILE.to_owned()
+        self.config_name.to_owned()
     }
 }
 
 impl StdConfigLoad for AuraConfig {}
 
 impl AuraConfig {
+    pub fn set_filename(&mut self, prod_id: AuraDevice) {
+        self.config_name = format!("aura_{prod_id:?}.ron");
+    }
+
     pub fn from_default_support(prod_id: AuraDevice, support_data: &LaptopLedData) -> Self {
         // create a default config here
         let enabled = if prod_id.is_new_style() {
@@ -162,6 +168,7 @@ impl AuraConfig {
             ]))
         };
         let mut config = AuraConfig {
+            config_name: String::new(),
             brightness: LedBrightness::Med,
             current_mode: AuraModeNum::Static,
             builtins: BTreeMap::new(),
@@ -169,6 +176,7 @@ impl AuraConfig {
             multizone_on: false,
             enabled,
         };
+        config.set_filename(prod_id);
 
         for n in &support_data.basic_modes {
             debug!("creating default for {n}");

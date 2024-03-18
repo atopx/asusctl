@@ -2,11 +2,13 @@ use std::collections::BTreeMap;
 
 use config_traits::{StdConfig, StdConfigLoad};
 use dmi_id::DMIID;
+use inotify::Inotify;
 use log::{info, warn};
 use rog_aura::advanced::{LedUsbPackets, UsbPackets};
 use rog_aura::aura_detection::{LaptopLedData, ASUS_KEYBOARD_DEVICES};
 use rog_aura::usb::{AuraDevice, LED_APPLY, LED_SET};
 use rog_aura::{AuraEffect, Direction, LedBrightness, Speed, GRADIENT, LED_MSG_LEN};
+use rog_platform::error::PlatformError;
 use rog_platform::hid_raw::HidRaw;
 use rog_platform::keyboard_led::KeyboardLed;
 
@@ -15,16 +17,39 @@ use crate::error::RogError;
 
 #[derive(Debug)]
 pub enum LEDNode {
+    /// Brightness and/or TUF RGB controls
     KbdLed(KeyboardLed),
+    /// Raw HID handle
     Rog(HidRaw),
-    None,
+}
+
+impl LEDNode {
+    pub fn set_brightness(&self, value: u8) -> Result<(), RogError> {
+        if let LEDNode::KbdLed(node) = self {
+            node.set_brightness(value)?;
+        }
+        Ok(())
+    }
+
+    pub fn get_brightness(&self) -> Result<u8, RogError> {
+        if let LEDNode::KbdLed(node) = self {
+            return Ok(node.get_brightness()?);
+        }
+        Err(RogError::Platform(PlatformError::NoAuraKeyboard))
+    }
+
+    pub fn monitor_brightness(&self) -> Result<Inotify, RogError> {
+        if let LEDNode::KbdLed(node) = self {
+            return Ok(node.monitor_brightness()?);
+        }
+        Err(RogError::Platform(PlatformError::NoAuraKeyboard))
+    }
 }
 
 pub struct CtrlKbdLed {
     // TODO: config stores the keyboard type as an AuraPower, use or update this
     pub led_prod: AuraDevice,
     pub led_node: LEDNode,
-    pub sysfs_node: KeyboardLed,
     pub supported_data: LaptopLedData,
     pub per_key_mode_active: bool,
     pub config: AuraConfig,
@@ -53,18 +78,6 @@ impl CtrlKbdLed {
         }
 
         let rgb_led = KeyboardLed::new()?;
-
-        if usb_node.is_none() && !rgb_led.has_kbd_rgb_mode() {
-            let dmi = DMIID::new().unwrap_or_default();
-            if dmi.dmi_family.contains("TUF") {
-                warn!(
-                    "kbd_rgb_mode was not found in the /sys/. You require a minimum 6.1 kernel \
-                     and a supported TUF laptop"
-                );
-            }
-            return Err(RogError::NoAuraKeyboard);
-        }
-
         let led_node = if let Some(rog) = usb_node {
             info!("Found ROG USB keyboard");
             LEDNode::Rog(rog)
@@ -72,11 +85,13 @@ impl CtrlKbdLed {
             info!("Found TUF keyboard");
             LEDNode::KbdLed(rgb_led.clone())
         } else {
-            LEDNode::None
+            return Err(RogError::NoAuraKeyboard);
+            // LEDNode::None
         };
 
-        // New loads data fromt he DB also
+        // New loads data from the DB also
         let mut config_init = AuraConfig::new();
+        config_init.set_filename(led_prod);
         let mut config_loaded = config_init.clone().load();
         // update the initialised data with what we loaded from disk
         for mode in &mut config_init.builtins {
@@ -109,8 +124,7 @@ impl CtrlKbdLed {
 
         let ctrl = CtrlKbdLed {
             led_prod,
-            led_node,            // on TUF this is the same as rgb_led / kd_brightness
-            sysfs_node: rgb_led, // If was none then we already returned above
+            led_node, // on TUF this is the same as rgb_led / kd_brightness
             supported_data: supported_basic_modes,
             per_key_mode_active: false,
             config: config_loaded,
@@ -275,7 +289,7 @@ mod tests {
     use rog_aura::aura_detection::{LaptopLedData, PowerZones};
     use rog_aura::usb::AuraDevice;
     use rog_aura::{AuraModeNum, AuraZone};
-    use rog_platform::keyboard_led::KeyboardLed;
+    use rog_platform::hid_raw::HidRaw;
 
     use super::CtrlKbdLed;
     use crate::ctrl_aura::config::AuraConfig;
@@ -295,8 +309,7 @@ mod tests {
         };
         let mut controller = CtrlKbdLed {
             led_prod: AuraDevice::X19b6,
-            led_node: LEDNode::None,
-            sysfs_node: KeyboardLed::default(),
+            led_node: LEDNode::Rog(HidRaw::new("id_product").unwrap()),
             supported_data: supported_basic_modes,
             per_key_mode_active: false,
             config,
@@ -333,8 +346,7 @@ mod tests {
         };
         let mut controller = CtrlKbdLed {
             led_prod: AuraDevice::X19b6,
-            led_node: LEDNode::None,
-            sysfs_node: KeyboardLed::default(),
+            led_node: LEDNode::Rog(HidRaw::new("id_product").unwrap()),
             supported_data: supported_basic_modes,
             per_key_mode_active: false,
             config,

@@ -265,6 +265,10 @@ impl CtrlPlatform {
 
 #[interface(name = "org.asuslinux.Daemon")]
 impl CtrlPlatform {
+    async fn version(&self) -> String {
+        crate::VERSION.to_string()
+    }
+
     /// Returns a list of property names that this system supports
     async fn supported_properties(&self) -> Vec<Properties> {
         let mut supported = Vec::new();

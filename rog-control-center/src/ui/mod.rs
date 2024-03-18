@@ -3,10 +3,10 @@ pub mod setup_aura;
 pub mod setup_fans;
 pub mod setup_system;
 
-use config_traits::StdConfig;
-use rog_dbus::zbus_platform::PlatformProxyBlocking;
 use std::sync::{Arc, Mutex};
 
+use config_traits::StdConfig;
+use rog_dbus::zbus_platform::PlatformProxyBlocking;
 use slint::{ComponentHandle, PhysicalSize, SharedString, Weak};
 
 use crate::config::Config;
