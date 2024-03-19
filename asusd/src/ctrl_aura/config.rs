@@ -1,15 +1,12 @@
 use std::collections::{BTreeMap, HashSet};
 
 use config_traits::{StdConfig, StdConfigLoad};
-use log::{debug, warn};
-use rog_aura::aura_detection::{LaptopLedData, ASUS_KEYBOARD_DEVICES};
+use log::{debug, info};
+use rog_aura::aura_detection::LaptopLedData;
 use rog_aura::power::AuraPower;
 use rog_aura::usb::{AuraDevRog1, AuraDevTuf, AuraDevice, AuraPowerDev};
 use rog_aura::{AuraEffect, AuraModeNum, AuraZone, Direction, LedBrightness, Speed, GRADIENT};
-use rog_platform::hid_raw::HidRaw;
 use serde_derive::{Deserialize, Serialize};
-
-const CONFIG_FILE: &str = "aura.ron";
 
 /// Enable/disable LED control in various states such as
 /// when the device is awake, suspended, shutting down or
@@ -117,18 +114,18 @@ pub struct AuraConfig {
     pub enabled: AuraPowerConfig,
 }
 
+impl AuraConfig {
+    /// Detect the keyboard type and load from default DB if data available
+    pub fn new_with(prod_id: AuraDevice) -> Self {
+        info!("creating new AuraConfig");
+        Self::from_default_support(prod_id, &LaptopLedData::get_data())
+    }
+}
+
 impl StdConfig for AuraConfig {
     /// Detect the keyboard type and load from default DB if data available
     fn new() -> Self {
-        warn!("creating new config");
-        let mut prod_id = AuraDevice::Unknown;
-        for prod in ASUS_KEYBOARD_DEVICES {
-            if HidRaw::new(prod.into()).is_ok() {
-                prod_id = prod;
-                break;
-            }
-        }
-        Self::from_default_support(prod_id, &LaptopLedData::get_data())
+        panic!("This should not be used");
     }
 
     fn config_dir() -> std::path::PathBuf {

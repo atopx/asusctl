@@ -7,10 +7,10 @@ use rog_aura::advanced::UsbPackets;
 use rog_aura::aura_detection::PowerZones;
 use rog_aura::usb::{AuraDevice, AuraPowerDev};
 use rog_aura::{AuraEffect, AuraModeNum, AuraZone, LedBrightness};
-use zbus::export::futures_util::lock::Mutex;
+use zbus::export::futures_util::lock::{Mutex, MutexGuard};
 use zbus::export::futures_util::StreamExt;
 use zbus::fdo::Error as ZbErr;
-use zbus::{interface, Connection, SignalContext};
+use zbus::{interface, SignalContext};
 
 use super::controller::CtrlKbdLed;
 use crate::error::RogError;
@@ -20,24 +20,19 @@ pub const AURA_ZBUS_NAME: &str = "Aura";
 pub const AURA_ZBUS_PATH: &str = "/org/asuslinux/Aura";
 
 #[derive(Clone)]
-pub struct CtrlAuraZbus(
-    pub Arc<Mutex<Vec<CtrlKbdLed>>>,
-    pub Option<SignalContext<'static>>,
-);
+pub struct CtrlAuraZbus(Arc<Mutex<CtrlKbdLed>>, SignalContext<'static>);
 
 impl CtrlAuraZbus {
+    pub fn new(controller: CtrlKbdLed, signal: SignalContext<'static>) -> Self {
+        Self(Arc::new(Mutex::new(controller)), signal)
+    }
+
     fn update_config(lock: &mut CtrlKbdLed) -> Result<(), RogError> {
         let bright = lock.led_node.get_brightness()?;
         lock.config.read();
         lock.config.brightness = bright.into();
         lock.config.write();
         Ok(())
-    }
-}
-
-impl crate::ZbusRun for CtrlAuraZbus {
-    async fn add_to_server(self, server: &mut Connection) {
-        Self::add_to_server_helper(self, AURA_ZBUS_PATH, server).await;
     }
 }
 
@@ -120,9 +115,7 @@ impl CtrlAuraZbus {
             .set_brightness(ctrl.config.brightness.into())?;
         ctrl.config.write();
 
-        if let Some(ct) = self.1.as_ref() {
-            self.led_mode_data_invalidate(ct).await.ok();
-        }
+        self.led_mode_data_invalidate(&self.1).await.ok();
         Ok(())
     }
 
@@ -162,9 +155,7 @@ impl CtrlAuraZbus {
         ctrl.config.set_builtin(effect);
         ctrl.config.write();
 
-        if let Some(ct) = self.1.as_ref() {
-            self.led_mode_invalidate(ct).await.ok();
-        }
+        self.led_mode_invalidate(&self.1).await.ok();
         Ok(())
     }
 
@@ -219,23 +210,21 @@ impl CtrlTask for CtrlAuraZbus {
     }
 
     async fn create_tasks(&self, _: SignalContext<'static>) -> Result<(), RogError> {
-        let load_save = |start: bool, keyboards: &mut [CtrlKbdLed]| {
-            for k in keyboards.iter_mut() {
-                // If waking up
-                if !start {
-                    info!("CtrlKbdLedTask reloading brightness and modes");
-                    k.led_node
-                        .set_brightness(k.config.brightness.into())
-                        .map_err(|e| error!("CtrlKbdLedTask: {e}"))
-                        .ok();
-                    k.write_current_config_mode()
-                        .map_err(|e| error!("CtrlKbdLedTask: {e}"))
-                        .ok();
-                } else if start {
-                    Self::update_config(k)
-                        .map_err(|e| error!("CtrlKbdLedTask: {e}"))
-                        .ok();
-                }
+        let load_save = |start: bool, mut lock: MutexGuard<'_, CtrlKbdLed>| {
+            // If waking up
+            if !start {
+                info!("CtrlKbdLedTask reloading brightness and modes");
+                lock.led_node
+                    .set_brightness(lock.config.brightness.into())
+                    .map_err(|e| error!("CtrlKbdLedTask: {e}"))
+                    .ok();
+                lock.write_current_config_mode()
+                    .map_err(|e| error!("CtrlKbdLedTask: {e}"))
+                    .ok();
+            } else if start {
+                Self::update_config(&mut lock)
+                    .map_err(|e| error!("CtrlKbdLedTask: {e}"))
+                    .ok();
             }
         };
 
@@ -245,15 +234,15 @@ impl CtrlTask for CtrlAuraZbus {
             move |sleeping| {
                 let inner1 = inner1.clone();
                 async move {
-                    let mut lock = inner1.lock().await;
-                    load_save(sleeping, lock.as_mut_slice());
+                    let lock = inner1.lock().await;
+                    load_save(sleeping, lock);
                 }
             },
             move |_shutting_down| {
                 let inner3 = inner3.clone();
                 async move {
-                    let mut lock = inner3.lock().await;
-                    load_save(false, lock.as_mut_slice());
+                    let lock = inner3.lock().await;
+                    load_save(false, lock);
                 }
             },
             move |_lid_closed| {
@@ -267,22 +256,21 @@ impl CtrlTask for CtrlAuraZbus {
         )
         .await;
 
-        for k in self.0.lock().await.iter() {
-            let ctrl2 = self.0.clone();
-            let watch = k.led_node.monitor_brightness()?;
-            tokio::spawn(async move {
-                let mut buffer = [0; 32];
-                watch
-                    .into_event_stream(&mut buffer)
-                    .unwrap()
-                    .for_each(|_| async {
-                        if let Some(mut lock) = ctrl2.try_lock() {
-                            load_save(true, lock.as_mut_slice());
-                        }
-                    })
-                    .await;
-            });
-        }
+        let ctrl2 = self.0.clone();
+        let ctrl = self.0.lock().await;
+        let watch = ctrl.led_node.monitor_brightness()?;
+        tokio::spawn(async move {
+            let mut buffer = [0; 32];
+            watch
+                .into_event_stream(&mut buffer)
+                .unwrap()
+                .for_each(|_| async {
+                    if let Some(lock) = ctrl2.try_lock() {
+                        load_save(true, lock);
+                    }
+                })
+                .await;
+        });
 
         Ok(())
     }
@@ -290,12 +278,11 @@ impl CtrlTask for CtrlAuraZbus {
 
 impl crate::Reloadable for CtrlAuraZbus {
     async fn reload(&mut self) -> Result<(), RogError> {
-        for k in self.0.lock().await.iter_mut() {
-            debug!("reloading keyboard mode");
-            k.write_current_config_mode()?;
-            debug!("reloading power states");
-            k.set_power_states().map_err(|err| warn!("{err}")).ok();
-        }
+        let mut ctrl = self.0.lock().await;
+        debug!("reloading keyboard mode");
+        ctrl.write_current_config_mode()?;
+        debug!("reloading power states");
+        ctrl.set_power_states().map_err(|err| warn!("{err}")).ok();
         Ok(())
     }
 }

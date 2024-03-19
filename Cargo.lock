@@ -155,6 +155,7 @@ dependencies = [
  "inotify",
  "log",
  "logind-zbus",
+ "mio",
  "rog_anime",
  "rog_aura",
  "rog_platform",
@@ -2774,6 +2775,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
  "libc",
+ "log",
  "wasi",
  "windows-sys 0.48.0",
 ]
@@ -4507,6 +4509,7 @@ dependencies = [
  "io-lifetimes",
  "libc",
  "libudev-sys",
+ "mio",
  "pkg-config",
 ]
 
