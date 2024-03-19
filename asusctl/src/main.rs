@@ -30,6 +30,20 @@ mod cli_opts;
 mod fan_curve_cli;
 
 fn main() {
+    let conn = zbus::blocking::Connection::system().unwrap();
+    let f = zbus::blocking::fdo::ObjectManagerProxy::new(&conn, "org.asuslinux.Daemon", "/org")
+        .unwrap();
+    let interfaces = f.get_managed_objects().unwrap();
+    for v in interfaces.iter() {
+        // let o: Vec<zbus::names::OwnedInterfaceName> = v.1.keys().map(|e|
+        // e.to_owned()).collect(); println!("{}, {:?}", v.0, o);
+        for k in v.1.keys() {
+            if k.as_str() == "org.asuslinux.Aura" {
+                println!("Found aura device at {}, {}", v.0, k);
+            }
+        }
+    }
+
     let args: Vec<String> = args().skip(1).collect();
 
     let missing_argument_k = gumdrop::Error::missing_argument(Opt::Short('k'));

@@ -14,6 +14,7 @@ use asusd::ctrl_platform::CtrlPlatform;
 use asusd::{print_board_info, start_tasks, CtrlTask, DBUS_NAME};
 use config_traits::{StdConfig, StdConfigLoad2, StdConfigLoad3};
 use log::{error, info};
+use zbus::fdo::ObjectManager;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,6 +57,11 @@ async fn start_daemon() -> Result<(), Box<dyn Error>> {
 
     // Start zbus server
     let mut connection = Connection::system().await?;
+    connection
+        .object_server()
+        .at("/org", ObjectManager)
+        .await
+        .unwrap();
 
     let config = Config::new().load();
     let cfg_path = config.file_path();

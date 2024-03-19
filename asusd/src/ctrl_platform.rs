@@ -19,7 +19,7 @@ use crate::error::RogError;
 use crate::{task_watch_item, task_watch_item_notify, CtrlTask, ReloadAndNotify};
 
 const PLATFORM_ZBUS_NAME: &str = "Platform";
-const PLATFORM_ZBUS_PATH: &str = "/org/asuslinux/Platform";
+const PLATFORM_ZBUS_PATH: &str = "/org/asuslinux";
 
 macro_rules! platform_get_value {
     ($self:ident, $property:tt, $prop_name:literal) => {
@@ -263,7 +263,7 @@ impl CtrlPlatform {
     }
 }
 
-#[interface(name = "org.asuslinux.Daemon")]
+#[interface(name = "org.asuslinux.Platform")]
 impl CtrlPlatform {
     async fn version(&self) -> String {
         crate::VERSION.to_string()

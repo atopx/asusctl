@@ -17,7 +17,7 @@ use crate::error::RogError;
 use crate::CtrlTask;
 
 pub const AURA_ZBUS_NAME: &str = "Aura";
-pub const AURA_ZBUS_PATH: &str = "/org/asuslinux/Aura";
+pub const AURA_ZBUS_PATH: &str = "/org/asuslinux";
 
 #[derive(Clone)]
 pub struct CtrlAuraZbus(Arc<Mutex<CtrlKbdLed>>, SignalContext<'static>);
@@ -39,7 +39,7 @@ impl CtrlAuraZbus {
 /// The main interface for changing, reading, or notfying
 ///
 /// LED commands are split between Brightness, Modes, Per-Key
-#[interface(name = "org.asuslinux.Daemon")]
+#[interface(name = "org.asuslinux.Aura")]
 impl CtrlAuraZbus {
     /// Return the device type for this Aura keyboard
     #[zbus(property)]
@@ -206,7 +206,7 @@ impl CtrlAuraZbus {
 
 impl CtrlTask for CtrlAuraZbus {
     fn zbus_path() -> &'static str {
-        AURA_ZBUS_PATH
+        "/org/asuslinux"
     }
 
     async fn create_tasks(&self, _: SignalContext<'static>) -> Result<(), RogError> {

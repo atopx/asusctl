@@ -38,6 +38,7 @@ pub fn setup_aura_page(ui: &MainWindow, _states: Arc<Mutex<Config>>) {
         let conn = zbus::Connection::system().await.unwrap();
         let aura = AuraProxy::builder(&conn)
             .cache_properties(CacheProperties::Yes)
+            // .path(path)
             .build()
             .await
             .unwrap();
