@@ -34,7 +34,6 @@ macro_rules! platform_get_value {
                     })
                 })
             } else {
-                debug!("RogPlatform: getting {} not supported", $prop_name);
                 return Err(FdoErr::NotSupported(format!("RogPlatform: {} not supported", $prop_name)));
             }
         })
