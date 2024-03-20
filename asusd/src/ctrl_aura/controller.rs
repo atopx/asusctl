@@ -134,8 +134,9 @@ impl CtrlKbdLed {
     fn init_config(prod_id: AuraDevice, supported_basic_modes: &LaptopLedData) -> AuraConfig {
         // New loads data from the DB also
         let mut config_init = AuraConfig::new_with(prod_id);
-        config_init.set_filename(prod_id);
+        // config_init.set_filename(prod_id);
         let mut config_loaded = config_init.clone().load();
+        config_loaded.set_filename(prod_id);
         // update the initialised data with what we loaded from disk
         for mode in &mut config_init.builtins {
             // update init values from loaded values if they exist

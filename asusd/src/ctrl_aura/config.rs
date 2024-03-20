@@ -104,7 +104,6 @@ impl From<&AuraPowerConfig> for AuraPowerDev {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 // #[serde(default)]
 pub struct AuraConfig {
-    #[serde(skip)]
     pub config_name: String,
     pub brightness: LedBrightness,
     pub current_mode: AuraModeNum,
@@ -133,6 +132,9 @@ impl StdConfig for AuraConfig {
     }
 
     fn file_name(&self) -> String {
+        if self.config_name.is_empty() {
+            panic!("Config file name should not be empty");
+        }
         self.config_name.to_owned()
     }
 }
@@ -165,7 +167,7 @@ impl AuraConfig {
             ]))
         };
         let mut config = AuraConfig {
-            config_name: String::new(),
+            config_name: format!("aura_{prod_id:?}.ron"),
             brightness: LedBrightness::Med,
             current_mode: AuraModeNum::Static,
             builtins: BTreeMap::new(),
@@ -173,7 +175,6 @@ impl AuraConfig {
             multizone_on: false,
             enabled,
         };
-        config.set_filename(prod_id);
 
         for n in &support_data.basic_modes {
             debug!("creating default for {n}");

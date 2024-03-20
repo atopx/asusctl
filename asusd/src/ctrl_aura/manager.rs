@@ -177,7 +177,6 @@ pub(crate) fn dbus_path_for_dev(parent: Device) -> Option<OwnedObjectPath> {
         } else {
             format!("{AURA_ZBUS_PATH}/{id_product}")
         };
-        dbg!(&path);
         return Some(ObjectPath::from_str_unchecked(&path).into());
     }
     None
