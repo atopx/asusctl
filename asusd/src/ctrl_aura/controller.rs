@@ -201,7 +201,7 @@ impl CtrlKbdLed {
             // pwr[4] as u8];     platform.set_kbd_rgb_state(&buf)?;
             // }
         } else if let LEDNode::Rog(_, hid_raw) = &self.led_node {
-            let bytes = self.config.enabled.to_bytes(self.led_type.into());
+            let bytes = self.config.enabled.to_bytes(self.led_type);
             let message = [0x5d, 0xbd, 0x01, bytes[0], bytes[1], bytes[2], bytes[3]];
 
             hid_raw.write_bytes(&message)?;

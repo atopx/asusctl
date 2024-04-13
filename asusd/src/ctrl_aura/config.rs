@@ -46,7 +46,7 @@ impl AuraConfig {
     pub fn new(prod_id: &str) -> Self {
         info!("Setting up AuraConfig for {prod_id:?}");
         // create a default config here
-        let device_type = AuraDeviceType::from(&*prod_id);
+        let device_type = AuraDeviceType::from(prod_id);
         if device_type == AuraDeviceType::Unknown {
             warn!("idProduct:{prod_id:?} is unknown");
         }

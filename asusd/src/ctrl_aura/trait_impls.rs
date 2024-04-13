@@ -28,6 +28,7 @@ impl CtrlAuraZbus {
 
     fn update_config(lock: &mut CtrlKbdLed) -> Result<(), RogError> {
         let bright = lock.led_node.get_brightness()?;
+        debug!("BRIGHTNESS: {bright:?}");
         lock.config.read();
         lock.config.brightness = bright.into();
         lock.config.write();
@@ -225,6 +226,7 @@ impl CtrlTask for CtrlAuraZbus {
                         e
                     })?;
                 } else if start {
+                    debug!("Storing brightness before suspend");
                     Self::update_config(&mut lock).map_err(|e| {
                         error!("CtrlKbdLedTask: {e}");
                         e
