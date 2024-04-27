@@ -88,6 +88,13 @@ Works with KDE Plasma (without GTK packages)
     make
     sudo make install
 
+**Debian:**
+
+    sudo apt install libclang-dev libudev-dev libfontconfig-dev build-essential cmake libseat-dev libxkbcommon-dev libinput-dev libgbm-dev
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    make
+    sudo make install
+
 **Ubuntu, Popos (unsuported):**
 
 instructions removed as outdated
