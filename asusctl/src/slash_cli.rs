@@ -1,20 +1,26 @@
-use gumdrop::Options;
+use argh::FromArgs;
 use rog_slash::SlashMode;
 
-#[derive(Options)]
+/// Set up the slash thing
+#[derive(FromArgs)]
+#[argh(subcommand, name = "slash")]
 pub struct SlashCommand {
-    #[options(help = "print help message")]
-    pub help: bool,
-    #[options(help = "Enable the Slash Ledbar")]
+    /// enable the Slash Ledbar
+    #[argh(option)]
     pub enable: bool,
-    #[options(help = "Ddisable the Slash Ledbar")]
+    /// disable the Slash Ledbar
+    #[argh(option)]
     pub disable: bool,
-    #[options(meta = "", help = "Set brightness value <0-255>")]
+    /// set brightness value <0-255>
+    #[argh(option)]
     pub brightness: Option<u8>,
-    #[options(meta = "", help = "Set interval value <0-255>")]
+    /// set interval value <0-255>
+    #[argh(option)]
     pub interval: Option<u8>,
-    #[options(help = "Set SlashMode (so 'list' for all options)")]
+    /// set SlashMode (so 'list' for all options)
+    #[argh(option)]
     pub slash_mode: Option<SlashMode>,
-    #[options(help = "list available animations")]
+    /// list available animations
+    #[argh(switch)]
     pub list: bool,
 }

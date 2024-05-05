@@ -1,118 +1,106 @@
-use gumdrop::Options;
-use rog_platform::platform::ThrottlePolicy;
-
 use crate::anime_cli::AnimeCommand;
 use crate::aura_cli::{LedBrightness, LedPowerCommand1, LedPowerCommand2, SetAuraBuiltin};
 use crate::fan_curve_cli::FanCurveCommand;
 use crate::slash_cli::SlashCommand;
+use argh::FromArgs;
+use rog_platform::platform::ThrottlePolicy;
 
-#[derive(Default, Options)]
+/// Do stuff
+#[derive(Default, FromArgs)]
 pub struct CliStart {
-    #[options(help_flag, help = "print help message")]
-    pub help: bool,
-    #[options(help = "show program version number")]
+    /// show program version number
+    #[argh(switch)]
     pub version: bool,
-    #[options(help = "show supported functions of this laptop")]
+    /// show supported functions of this laptop
+    #[argh(switch)]
     pub show_supported: bool,
-    #[options(meta = "", help = "<off, low, med, high>")]
+    /// set keyboard brightness <off, low, med, high>
+    #[argh(option)]
     pub kbd_bright: Option<LedBrightness>,
-    #[options(help = "Toggle to next keyboard brightness")]
+    /// toggle to next keyboard brightness
+    #[argh(switch)]
     pub next_kbd_bright: bool,
-    #[options(help = "Toggle to previous keyboard brightness")]
+    /// toggle to previous keyboard brightness
+    #[argh(switch)]
     pub prev_kbd_bright: bool,
-    #[options(meta = "", help = "Set your battery charge limit <20-100>")]
+    /// set your battery charge limit <20-100>
+    #[argh(option)]
     pub chg_limit: Option<u8>,
-    #[options(command)]
+    #[argh(subcommand)]
     pub command: Option<CliCommand>,
 }
 
-#[derive(Options)]
+#[derive(FromArgs)]
+#[argh(subcommand)]
 pub enum CliCommand {
-    #[options(help = "Set the keyboard lighting from built-in modes")]
     LedMode(LedModeCommand),
-    #[options(help = "Set the LED power states")]
     LedPow1(LedPowerCommand1),
-    #[options(help = "Set the LED power states")]
     LedPow2(LedPowerCommand2),
-    #[options(help = "Set or select platform_profile")]
     Profile(ProfileCommand),
-    #[options(help = "Set, select, or modify fan curves if supported")]
     FanCurve(FanCurveCommand),
-    #[options(help = "Set the graphics mode (obsoleted by supergfxctl)")]
     Graphics(GraphicsCommand),
-    #[options(name = "anime", help = "Manage AniMe Matrix")]
     Anime(AnimeCommand),
-    #[options(name = "slash", help = "Manage Slash Ledbar")]
     Slash(SlashCommand),
-    #[options(help = "Change bios settings")]
-    Bios(BiosCommand),
+    Bios(SysCommand),
 }
 
-#[derive(Debug, Clone, Options)]
+/// Set the platform profile
+#[derive(Debug, Clone, FromArgs)]
+#[argh(subcommand, name = "profile")]
 pub struct ProfileCommand {
-    #[options(help = "print help message")]
-    pub help: bool,
-
-    #[options(help = "toggle to next profile in list")]
+    /// toggle to next profile in list
+    #[argh(switch)]
     pub next: bool,
-
-    #[options(help = "list available profiles")]
+    /// list available profiles
+    #[argh(switch)]
     pub list: bool,
-
-    #[options(help = "get profile")]
+    /// get profile
+    #[argh(switch)]
     pub profile_get: bool,
-
-    #[options(meta = "", help = "set the active profile")]
+    /// set the active profile
+    #[argh(option)]
     pub profile_set: Option<ThrottlePolicy>,
 }
 
-#[derive(Options)]
+/// Setup the aura device
+#[derive(FromArgs)]
+#[argh(subcommand, name = "aura")]
 pub struct LedModeCommand {
-    #[options(help = "print help message")]
-    pub help: bool,
-    #[options(help = "switch to next aura mode")]
+    /// switch to next aura mode
+    #[argh(switch)]
     pub next_mode: bool,
-    #[options(help = "switch to previous aura mode")]
+    /// switch to previous aura mode
+    #[argh(switch)]
     pub prev_mode: bool,
-    #[options(command)]
+    #[argh(subcommand)]
     pub command: Option<SetAuraBuiltin>,
 }
 
-#[derive(Options)]
-pub struct GraphicsCommand {
-    #[options(help = "print help message")]
-    pub help: bool,
-}
+/// Unused
+#[derive(FromArgs)]
+#[argh(subcommand, name = "aura")]
+pub struct GraphicsCommand {}
 
-#[derive(Options, Debug)]
-pub struct BiosCommand {
-    #[options(help = "print help message")]
-    pub help: bool,
-    #[options(
-        meta = "",
-        short = "S",
-        no_long,
-        help = "set bios POST sound: asusctl -S <true/false>"
-    )]
+/// Set up the system platform
+#[derive(FromArgs)]
+#[argh(subcommand, name = "system")]
+pub struct SysCommand {
+    /// set bios POST sound:  <true/false>
+    #[argh(option)]
     pub post_sound_set: Option<bool>,
-    #[options(no_long, short = "s", help = "read bios POST sound")]
+    /// read bios POST sound
+    #[argh(switch)]
     pub post_sound_get: bool,
-    #[options(
-        meta = "",
-        short = "D",
-        no_long,
-        help = "Switch GPU MUX mode: 0 = Discrete, 1 = Optimus, reboot required"
-    )]
+    /// switch GPU MUX mode: 0 = Discrete, 1 = Optimus, reboot required"
+    #[argh(option)]
     pub gpu_mux_mode_set: Option<u8>,
-    #[options(no_long, short = "d", help = "get GPU mode")]
+    /// get GPU mode
+    #[argh(switch)]
     pub gpu_mux_mode_get: bool,
-    #[options(
-        meta = "",
-        short = "O",
-        no_long,
-        help = "Set device panel overdrive <true/false>"
-    )]
+    /// set device panel overdrive <true/false>
+    #[argh(option)]
     pub panel_overdrive_set: Option<bool>,
-    #[options(no_long, short = "o", help = "get panel overdrive")]
+    /// get panel overdrive
+    #[argh(switch)]
     pub panel_overdrive_get: bool,
 }

@@ -1,19 +1,18 @@
 use std::convert::TryFrom;
-use std::env::args;
 use std::path::Path;
 use std::process::Command;
 use std::thread::sleep;
 
 use anime_cli::{AnimeActions, AnimeCommand};
+use argh::FromArgs;
 use asusd::ctrl_fancurves::FAN_CURVE_ZBUS_NAME;
 use aura_cli::{LedPowerCommand1, LedPowerCommand2};
 use dmi_id::DMIID;
 use fan_curve_cli::FanCurveCommand;
-use gumdrop::{Opt, Options};
 use rog_anime::usb::get_anime_type;
 use rog_anime::{AnimTime, AnimeDataBuffer, AnimeDiagonal, AnimeGif, AnimeImage, AnimeType, Vec2};
 use rog_aura::keyboard::{AuraPowerState, LaptopAuraPower};
-use rog_aura::{self, AuraDeviceType, AuraEffect, PowerZones};
+use rog_aura::{self, AuraEffect, PowerZones};
 use rog_dbus::zbus_anime::AnimeProxyBlocking;
 use rog_dbus::zbus_aura::AuraProxyBlocking;
 use rog_dbus::zbus_fan_curves::FanCurvesProxyBlocking;
@@ -24,7 +23,7 @@ use rog_profiles::error::ProfileError;
 use rog_slash::SlashMode;
 use zbus::blocking::Connection;
 
-use crate::aura_cli::{AuraPowerStates, LedBrightness};
+use crate::aura_cli::AuraPowerStates;
 use crate::cli_opts::*;
 use crate::slash_cli::SlashCommand;
 
@@ -35,20 +34,7 @@ mod fan_curve_cli;
 mod slash_cli;
 
 fn main() {
-    let args: Vec<String> = args().skip(1).collect();
-
-    let missing_argument_k = gumdrop::Error::missing_argument(Opt::Short('k'));
-    let parsed = match CliStart::parse_args_default(&args) {
-        Ok(p) => p,
-        Err(err) if err.to_string() == missing_argument_k.to_string() => CliStart {
-            kbd_bright: Some(LedBrightness::new(None)),
-            ..Default::default()
-        },
-        Err(err) => {
-            println!("Error: {}", err);
-            return;
-        }
-    };
+    let parsed: CliStart = argh::from_env();
 
     let conn = Connection::system().unwrap();
     if let Ok(platform_proxy) = PlatformProxyBlocking::new(&conn).map_err(|e| {
@@ -176,43 +162,12 @@ fn do_parsed(
             handle_platform_properties(&conn, supported_properties, cmd)?
         }
         None => {
-            if (!parsed.show_supported
+            if !parsed.show_supported
                 && parsed.kbd_bright.is_none()
                 && parsed.chg_limit.is_none()
                 && !parsed.next_kbd_bright
-                && !parsed.prev_kbd_bright)
-                || parsed.help
+                && !parsed.prev_kbd_bright
             {
-                println!("{}", CliStart::usage());
-                println!();
-                if let Some(cmdlist) = CliStart::command_list() {
-                    let dev_type = if let Ok(proxy) = find_aura_iface() {
-                        // TODO: commands on all?
-                        proxy
-                            .first()
-                            .unwrap()
-                            .device_type()
-                            .unwrap_or(AuraDeviceType::Unknown)
-                    } else {
-                        AuraDeviceType::Unknown
-                    };
-                    let commands: Vec<String> = cmdlist.lines().map(|s| s.to_owned()).collect();
-                    for command in commands.iter().filter(|command| {
-                        if !dev_type.is_old_laptop()
-                            && !dev_type.is_tuf_laptop()
-                            && command.trim().starts_with("led-pow-1")
-                        {
-                            return false;
-                        }
-                        if !dev_type.is_new_laptop() && command.trim().starts_with("led-pow-2") {
-                            return false;
-                        }
-                        true
-                    }) {
-                        println!("{}", command);
-                    }
-                }
-
                 println!("\nExtra help can be requested on any command or subcommand:");
                 println!(" asusctl led-mode --help");
                 println!(" asusctl led-mode static --help");
@@ -296,22 +251,6 @@ fn do_gfx() {
 }
 
 fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std::error::Error>> {
-    if (cmd.command.is_none()
-        && cmd.enable_display.is_none()
-        && cmd.enable_powersave_anim.is_none()
-        && cmd.brightness.is_none()
-        && cmd.off_when_lid_closed.is_none()
-        && cmd.off_when_suspended.is_none()
-        && cmd.off_when_unplugged.is_none()
-        && cmd.off_with_his_head.is_none()
-        && !cmd.clear)
-        || cmd.help
-    {
-        println!("Missing arg or command\n\n{}", cmd.self_usage());
-        if let Some(lst) = cmd.self_command_list() {
-            println!("\n{}", lst);
-        }
-    }
     let proxy = AnimeProxyBlocking::new(conn)?;
     if let Some(enable) = cmd.enable_display {
         proxy.set_enable_display(enable)?;
@@ -351,13 +290,6 @@ fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std
     if let Some(action) = cmd.command.as_ref() {
         match action {
             AnimeActions::Image(image) => {
-                if image.help_requested() || image.path.is_empty() {
-                    println!("Missing arg or command\n\n{}", image.self_usage());
-                    if let Some(lst) = image.self_command_list() {
-                        println!("\n{}", lst);
-                    }
-                    return Ok(());
-                }
                 verify_brightness(image.bright);
 
                 let matrix = AnimeImage::from_png(
@@ -372,13 +304,6 @@ fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std
                 proxy.write(<AnimeDataBuffer>::try_from(&matrix)?)?;
             }
             AnimeActions::PixelImage(image) => {
-                if image.help_requested() || image.path.is_empty() {
-                    println!("Missing arg or command\n\n{}", image.self_usage());
-                    if let Some(lst) = image.self_command_list() {
-                        println!("\n{}", lst);
-                    }
-                    return Ok(());
-                }
                 verify_brightness(image.bright);
 
                 let matrix = AnimeDiagonal::from_png(
@@ -391,13 +316,6 @@ fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std
                 proxy.write(matrix.into_data_buffer(anime_type)?)?;
             }
             AnimeActions::Gif(gif) => {
-                if gif.help_requested() || gif.path.is_empty() {
-                    println!("Missing arg or command\n\n{}", gif.self_usage());
-                    if let Some(lst) = gif.self_command_list() {
-                        println!("\n{}", lst);
-                    }
-                    return Ok(());
-                }
                 verify_brightness(gif.bright);
 
                 let matrix = AnimeGif::from_gif(
@@ -425,13 +343,6 @@ fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std
                 }
             }
             AnimeActions::PixelGif(gif) => {
-                if gif.help_requested() || gif.path.is_empty() {
-                    println!("Missing arg or command\n\n{}", gif.self_usage());
-                    if let Some(lst) = gif.self_command_list() {
-                        println!("\n{}", lst);
-                    }
-                    return Ok(());
-                }
                 verify_brightness(gif.bright);
 
                 let matrix = AnimeGif::from_diagonal_gif(
@@ -456,15 +367,6 @@ fn handle_anime(conn: &Connection, cmd: &AnimeCommand) -> Result<(), Box<dyn std
                 }
             }
             AnimeActions::SetBuiltins(builtins) => {
-                if builtins.help_requested() || builtins.set.is_none() {
-                    println!("\nAny unspecified args will be set to default (first shown var)\n");
-                    println!("\n{}", builtins.self_usage());
-                    if let Some(lst) = builtins.self_command_list() {
-                        println!("\n{}", lst);
-                    }
-                    return Ok(());
-                }
-
                 proxy.set_builtin_animations(rog_anime::Animations {
                     boot: builtins.boot,
                     awake: builtins.awake,
@@ -487,19 +389,6 @@ fn verify_brightness(brightness: f32) {
 }
 
 fn handle_slash(conn: &Connection, cmd: &SlashCommand) -> Result<(), Box<dyn std::error::Error>> {
-    if (cmd.brightness.is_none()
-        && cmd.interval.is_none()
-        && cmd.slash_mode.is_none()
-        && !cmd.list
-        && !cmd.enable
-        && !cmd.disable)
-        || cmd.help
-    {
-        println!("Missing arg or command\n\n{}", cmd.self_usage());
-        if let Some(lst) = cmd.self_command_list() {
-            println!("\n{}", lst);
-        }
-    }
     let proxy = SlashProxyBlocking::new(conn)?;
     if cmd.enable {
         proxy.set_enabled(true)?;
@@ -530,40 +419,6 @@ fn handle_led_mode(
     aura: &[AuraProxyBlocking],
     mode: &LedModeCommand,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if mode.command.is_none() && !mode.prev_mode && !mode.next_mode {
-        if !mode.help {
-            println!("Missing arg or command\n");
-        }
-        println!("{}\n", mode.self_usage());
-        println!("Commands available");
-
-        if let Some(cmdlist) = LedModeCommand::command_list() {
-            let commands: Vec<String> = cmdlist.lines().map(|s| s.to_owned()).collect();
-            // TODO: multiple rgb check
-            let modes = aura.first().unwrap().supported_basic_modes()?;
-            for command in commands.iter().filter(|command| {
-                for mode in &modes {
-                    if command
-                        .trim()
-                        .starts_with(&<&str>::from(mode).to_lowercase())
-                    {
-                        return true;
-                    }
-                }
-                // TODO
-                // if !supported.basic_zones.is_empty() && command.trim().starts_with("multi") {
-                //     return true;
-                // }
-                false
-            }) {
-                println!("{}", command);
-            }
-        }
-
-        println!("\nHelp can also be requested on modes, e.g: static --help");
-        return Ok(());
-    }
-
     if mode.next_mode && mode.prev_mode {
         println!("Please specify either next or previous");
         return Ok(());
@@ -591,10 +446,6 @@ fn handle_led_mode(
             aura.set_led_mode(modes[pos])?;
         }
     } else if let Some(mode) = mode.command.as_ref() {
-        if mode.help_requested() {
-            println!("{}", mode.self_usage());
-            return Ok(());
-        }
         for aura in aura {
             aura.set_led_mode_data(<AuraEffect>::from(mode))?;
         }
@@ -611,19 +462,6 @@ fn handle_led_power1(
         let dev_type = aura.device_type()?;
         if !dev_type.is_old_laptop() && !dev_type.is_tuf_laptop() {
             println!("This option applies only to keyboards 2021+");
-        }
-
-        if power.awake.is_none()
-            && power.sleep.is_none()
-            && power.boot.is_none()
-            && !power.keyboard
-            && !power.lightbar
-        {
-            if !power.help {
-                println!("Missing arg or command\n");
-            }
-            println!("{}\n", power.self_usage());
-            return Ok(());
         }
 
         if dev_type.is_old_laptop() || dev_type.is_tuf_laptop() {
@@ -672,31 +510,7 @@ fn handle_led_power2(
             println!("This option applies only to keyboards 2021+");
             continue;
         }
-
-        if power.command().is_none() {
-            if !power.help {
-                println!("Missing arg or command\n");
-            }
-            println!("{}\n", power.self_usage());
-            println!("Commands available");
-
-            if let Some(cmdlist) = LedPowerCommand2::command_list() {
-                let commands: Vec<String> = cmdlist.lines().map(|s| s.to_owned()).collect();
-                for command in &commands {
-                    println!("{}", command);
-                }
-            }
-
-            println!("\nHelp can also be requested on commands, e.g: boot --help");
-            return Ok(());
-        }
-
         if let Some(pow) = power.command.as_ref() {
-            if pow.help_requested() {
-                println!("{}", pow.self_usage());
-                return Ok(());
-            }
-
             let mut states = aura.led_power()?;
             let mut set = |zone: PowerZones, set_to: &AuraPowerStates| {
                 for state in states.states.iter_mut() {
@@ -737,18 +551,6 @@ fn handle_throttle_profile(
         return Err(ProfileError::NotSupported.into());
     }
 
-    if !cmd.next && !cmd.list && cmd.profile_set.is_none() && !cmd.profile_get {
-        if !cmd.help {
-            println!("Missing arg or command\n");
-        }
-        println!("{}", ProfileCommand::usage());
-
-        if let Some(lst) = cmd.self_command_list() {
-            println!("\n{}", lst);
-        }
-        return Ok(());
-    }
-
     let proxy = PlatformProxyBlocking::new(conn)?;
     let current = proxy.throttle_thermal_policy()?;
 
@@ -780,18 +582,6 @@ fn handle_fan_curve(
     if !supported.contains(&FAN_CURVE_ZBUS_NAME.to_string()) {
         println!("Fan-curves not supported by either this kernel or by the laptop.");
         return Err(ProfileError::NotSupported.into());
-    }
-
-    if !cmd.get_enabled && !cmd.default && cmd.mod_profile.is_none() {
-        if !cmd.help {
-            println!("Missing arg or command\n");
-        }
-        println!("{}", FanCurveCommand::usage());
-
-        if let Some(lst) = cmd.self_command_list() {
-            println!("\n{}", lst);
-        }
-        return Ok(());
     }
 
     if (cmd.enable_fan_curves.is_some() || cmd.fan.is_some() || cmd.data.is_some())
@@ -854,30 +644,9 @@ fn handle_fan_curve(
 fn handle_platform_properties(
     conn: &Connection,
     supported: &[Properties],
-    cmd: &BiosCommand,
+    cmd: &SysCommand,
 ) -> Result<(), Box<dyn std::error::Error>> {
     {
-        if (cmd.gpu_mux_mode_set.is_none()
-            && !cmd.gpu_mux_mode_get
-            && cmd.post_sound_set.is_none()
-            && !cmd.post_sound_get
-            && cmd.panel_overdrive_set.is_none()
-            && !cmd.panel_overdrive_get)
-            || cmd.help
-        {
-            println!("Missing arg or command\n");
-
-            let usage: Vec<String> = BiosCommand::usage().lines().map(|s| s.to_owned()).collect();
-
-            for line in usage.iter().filter(|line| {
-                line.contains("sound") && supported.contains(&Properties::PostAnimationSound)
-                    || line.contains("GPU") && supported.contains(&Properties::GpuMuxMode)
-                    || line.contains("panel") && supported.contains(&Properties::PanelOd)
-            }) {
-                println!("{}", line);
-            }
-        }
-
         let proxy = PlatformProxyBlocking::new(conn)?;
 
         if let Some(opt) = cmd.post_sound_set {

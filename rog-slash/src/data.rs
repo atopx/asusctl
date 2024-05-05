@@ -12,6 +12,7 @@ use crate::error::SlashError;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum SlashType {
     GA403,
+    GA605,
     Unknown,
     Unsupported,
 }
@@ -22,6 +23,7 @@ impl FromStr for SlashType {
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(match s {
             "ga403" | "GA403" => Self::GA403,
+            "ga605" | "GA605" => Self::GA605,
             _ => Self::Unknown,
         })
     }

@@ -63,6 +63,14 @@ pub struct CtrlAnime {
 impl CtrlAnime {
     #[inline]
     pub fn new(config: AnimeConfig) -> Result<CtrlAnime, RogError> {
+        let mut anime_type = get_anime_type()?;
+        if let AnimeType::Unknown = anime_type {
+            if let Some(model) = config.model_override {
+                warn!("Overriding the Animatrix type as {model:?}");
+                anime_type = model;
+            }
+        }
+
         let usb = USBRaw::new(0x193b).ok();
         let hid = HidRaw::new("193b").ok();
         let node = if usb.is_some() {
@@ -76,24 +84,16 @@ impl CtrlAnime {
         };
 
         // TODO: something better to set wakeups disabled
-        // if matches!(node, Node::Usb(_)) {
-        //     if let Ok(mut enumerator) = udev::Enumerator::new() {
-        //         enumerator.match_subsystem("usb").ok();
-        //         enumerator.match_attribute("idProduct", "193b").ok();
+        if matches!(node, Node::Usb(_)) {
+            if let Ok(mut enumerator) = udev::Enumerator::new() {
+                enumerator.match_subsystem("usb").ok();
+                enumerator.match_attribute("idProduct", "193b").ok();
 
-        //         if let Ok(mut enumer) = enumerator.scan_devices() {
-        //             if let Some(mut dev) = enumer.next() {
-        //                 dev.set_attribute_value("power/wakeup", "disabled").ok();
-        //             }
-        //         }
-        //     }
-        // }
-
-        let mut anime_type = get_anime_type()?;
-        if let AnimeType::Unknown = anime_type {
-            if let Some(model) = config.model_override {
-                warn!("Overriding the Animatrix type as {model:?}");
-                anime_type = model;
+                if let Ok(mut enumer) = enumerator.scan_devices() {
+                    if let Some(mut dev) = enumer.next() {
+                        dev.set_attribute_value("power/wakeup", "disabled").ok();
+                    }
+                }
             }
         }
 
