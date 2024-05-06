@@ -4,18 +4,18 @@ use std::path::Path;
 use std::time::Duration;
 
 use glam::Vec2;
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::error::{AnimeError, Result};
 use crate::{AnimeDataBuffer, AnimeDiagonal, AnimeImage, AnimeType, Pixel};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct AnimeFrame {
     /// Precomputed data for the frame. This can be transferred directly to the
     /// the `asusd` daemon over dbus or converted to USB packet with
     /// `AnimePacketType::from(buffer)`
     data: AnimeDataBuffer,
-    delay: Duration,
+    delay: u64,
 }
 
 impl AnimeFrame {
@@ -28,15 +28,15 @@ impl AnimeFrame {
     /// Get the `Duration` of the delay for this frame
     #[inline]
     pub fn delay(&self) -> Duration {
-        self.delay
+        Duration::from_millis(self.delay)
     }
 }
 
 /// Defines the time or animation cycle count to use for a gif
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, DeRon, SerRon)]
 pub enum AnimTime {
     /// Time in milliseconds for animation to run
-    Time(Duration),
+    Time(u64),
     /// How many full animation loops to run or how many seconds if image is
     /// static
     Count(u32),
@@ -54,42 +54,42 @@ impl Default for AnimTime {
 }
 
 /// Fancy brightness control: fade in/out, show at brightness for n time
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, DeRon, SerRon)]
 pub struct Fade {
-    fade_in: Duration,
-    show_for: Option<Duration>,
-    fade_out: Duration,
+    fade_in: u64,
+    show_for: Option<u64>,
+    fade_out: u64,
 }
 
 impl Fade {
     pub fn new(fade_in: Duration, show_for: Option<Duration>, fade_out: Duration) -> Self {
         Self {
-            fade_in,
-            show_for,
-            fade_out,
+            fade_in: fade_in.as_millis() as u64,
+            show_for: show_for.map(|m| m.as_millis() as u64),
+            fade_out: fade_out.as_millis() as u64,
         }
     }
 
     pub fn fade_in(&self) -> Duration {
-        self.fade_in
+        Duration::from_millis(self.fade_in)
     }
 
     pub fn show_for(&self) -> Option<Duration> {
-        self.show_for
+        self.show_for.map(|m| Duration::from_millis(m))
     }
 
     pub fn fade_out(&self) -> Duration {
-        self.fade_out
+        Duration::from_millis(self.fade_out)
     }
 
     pub fn total_fade_time(&self) -> Duration {
-        self.fade_in + self.fade_out
+        Duration::from_millis(self.fade_in + self.fade_out)
     }
 }
 
 /// A gif animation. This is a collection of frames from the gif, and a duration
 /// that the animation should be shown for.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct AnimeGif(Vec<AnimeFrame>, AnimTime);
 
 impl AnimeGif {
@@ -138,7 +138,7 @@ impl AnimeGif {
 
             frames.push(AnimeFrame {
                 data: matrix.into_data_buffer(anime_type)?,
-                delay: Duration::from_millis(wait as u64),
+                delay: wait as u64,
             });
         }
         Ok(Self(frames, duration))
@@ -158,7 +158,7 @@ impl AnimeGif {
         if let AnimTime::Fade(fade) = duration {
             total = fade.total_fade_time();
             if let Some(middle) = fade.show_for {
-                total += middle;
+                total += Duration::from_millis(middle);
             }
         }
         // Make frame delay 30ms, and find frame count
@@ -166,7 +166,7 @@ impl AnimeGif {
 
         let single = AnimeFrame {
             data: image.into_data_buffer(anime_type)?,
-            delay: Duration::from_millis(30),
+            delay: 30,
         };
         let frames = vec![single; frame_count as usize];
 
@@ -241,7 +241,7 @@ impl AnimeGif {
 
             frames.push(AnimeFrame {
                 data: <AnimeDataBuffer>::try_from(&image)?,
-                delay: Duration::from_millis(wait as u64),
+                delay: wait as u64,
             });
         }
         Ok(Self(frames, duration))
@@ -268,7 +268,7 @@ impl AnimeGif {
         if let AnimTime::Fade(fade) = duration {
             total = fade.total_fade_time();
             if let Some(middle) = fade.show_for {
-                total += middle;
+                total += Duration::from_millis(middle);
             }
         }
         // Make frame delay 30ms, and find frame count
@@ -276,7 +276,7 @@ impl AnimeGif {
 
         let single = AnimeFrame {
             data: <AnimeDataBuffer>::try_from(&image)?,
-            delay: Duration::from_millis(30),
+            delay: 30,
         };
         let frames = vec![single; frame_count as usize];
 
@@ -303,7 +303,7 @@ impl AnimeGif {
     /// Get total gif time for one run
     pub fn total_frame_time(&self) -> Duration {
         let mut time = 0;
-        self.0.iter().for_each(|f| time += f.delay.as_millis());
+        self.0.iter().for_each(|f| time += f.delay);
         Duration::from_millis(time as u64)
     }
 }

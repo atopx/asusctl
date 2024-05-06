@@ -1,6 +1,6 @@
 use dmi_id::DMIID;
 use log::{error, info, warn};
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::keyboard::AdvancedAuraType;
 use crate::{AuraModeNum, AuraZone, PowerZones};
@@ -8,7 +8,7 @@ use crate::{AuraModeNum, AuraZone, PowerZones};
 pub const ASUS_LED_MODE_CONF: &str = "/usr/share/asusd/aura_support.ron";
 pub const ASUS_LED_MODE_USER_CONF: &str = "/etc/asusd/asusd_user_ledmodes.ron";
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, DeRon, SerRon)]
 pub struct LedSupportData {
     /// This can be many different types of name:
     /// - `/sys/class/dmi/id/board_name` (must use for laptops)
@@ -33,11 +33,11 @@ pub struct LedSupportData {
     /// $ Bus 003 Device 003: ID 0b05:19b6 ASUSTek Computer, Inc. N-KEY Device
     /// ```
     /// here `19b6` is all that is required. Case insensitive.
-    #[serde(default)]
+    #[nserde(default)]
     pub product_id: String,
     /// Keyboard or device LED layout, this is the name of the externally
     /// defined layout file. Optional, can be an empty string
-    #[serde(default)]
+    #[nserde(default)]
     pub layout_name: String,
     /// If empty will default to `Static` mode
     pub basic_modes: Vec<AuraModeNum>,
@@ -45,11 +45,11 @@ pub struct LedSupportData {
     /// 4 zones and may have a logo and lightbar.
     ///
     /// Ignored if empty.
-    #[serde(default)]
+    #[nserde(default)]
     pub basic_zones: Vec<AuraZone>,
     /// `Zoned` or `PerKey`.
     // TODO: remove and use layouts only
-    #[serde(default)]
+    #[nserde(default)]
     pub advanced_type: AdvancedAuraType,
     /// If empty will default to `Keyboard` power zone
     pub power_zones: Vec<PowerZones>,
@@ -74,7 +74,7 @@ impl LedSupportData {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub struct LedSupportFile(Vec<LedSupportData>);
 
 impl LedSupportFile {
@@ -116,7 +116,7 @@ impl LedSupportFile {
             if file.is_empty() {
                 warn!("{} is empty", ASUS_LED_MODE_USER_CONF);
             } else {
-                if let Ok(mut tmp) = ron::from_str::<LedSupportFile>(&file) {
+                if let Ok(mut tmp) = LedSupportFile::deserialize_ron(&file) {
                     data.0.append(&mut tmp.0);
                 }
                 info!(
@@ -130,7 +130,7 @@ impl LedSupportFile {
             if file.is_empty() {
                 warn!("{} is empty", ASUS_LED_MODE_CONF);
             } else {
-                let mut tmp: LedSupportFile = ron::from_str(&file)
+                let mut tmp: LedSupportFile = DeRon::deserialize_ron(&file)
                     .map_err(|e| error!("{e}"))
                     .unwrap_or_else(|_| panic!("Could not deserialise {}", ASUS_LED_MODE_CONF));
                 data.0.append(&mut tmp.0);
@@ -158,7 +158,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
 
-    use ron::ser::PrettyConfig;
+    use nanoserde::{DeRon, SerRon};
 
     use super::LedSupportData;
     use crate::aura_detection::{LedSupportFile, PowerZones};
@@ -178,7 +178,7 @@ mod tests {
             power_zones: vec![PowerZones::Keyboard, PowerZones::RearGlow],
         };
 
-        assert!(ron::to_string(&led).is_ok());
+        SerRon::serialize_ron(&led);
         // assert_eq!(json, String::new());
     }
 
@@ -189,15 +189,14 @@ mod tests {
 
         let buf = std::fs::read_to_string(&data).unwrap();
 
-        let tmp = ron::from_str::<LedSupportFile>(&buf).unwrap();
+        let tmp = LedSupportFile::deserialize_ron(&buf).unwrap();
 
         // Ensure the data is sorted
         let mut tmp_sort = tmp.clone();
         tmp_sort.0.sort_by(|a, b| a.product_id.cmp(&b.product_id));
         tmp_sort.0.sort_by(|a, b| a.device_name.cmp(&b.device_name));
         if tmp != tmp_sort {
-            let sorted =
-                ron::ser::to_string_pretty(&tmp_sort, PrettyConfig::new().depth_limit(2)).unwrap();
+            let sorted = SerRon::serialize_ron(&tmp_sort);
             let mut file = OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -211,10 +210,6 @@ mod tests {
             )
         }
 
-        let my_config = PrettyConfig::new().depth_limit(2);
-        println!(
-            "RON: {}",
-            ron::ser::to_string_pretty(&tmp, my_config).unwrap()
-        );
+        println!("RON: {}", SerRon::serialize_ron(&tmp));
     }
 }

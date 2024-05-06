@@ -5,18 +5,18 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use config_traits::StdConfig;
+use nanoserde::{DeRon, SerRon};
 use rog_anime::error::AnimeError;
 use rog_anime::{ActionData, ActionLoader, AnimTime, Fade, Sequences, Vec2};
 use rog_dbus::zbus_anime::AnimeProxyBlocking;
 use ron::ser::PrettyConfig;
-use serde_derive::{Deserialize, Serialize};
 use zbus::interface;
 use zbus::zvariant::{ObjectPath, Type};
 
 use crate::config::ConfigAnime;
 use crate::error::Error;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[derive(Debug, Clone, DeRon, SerRon, Type)]
 pub struct Timer {
     type_of: TimeType,
     /// If time type is Timer then this is milliseonds, otherwise it is
@@ -51,7 +51,7 @@ impl From<Timer> for AnimTime {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[derive(Debug, Clone, DeRon, SerRon, Type)]
 pub enum TimeType {
     Timer,
     Count,

@@ -157,13 +157,12 @@ dependencies = [
  "log",
  "logind-zbus",
  "mio",
+ "nanoserde",
  "rog_anime",
  "rog_aura",
  "rog_platform",
  "rog_profiles",
  "rog_slash",
- "serde",
- "serde_derive",
  "tokio",
  "udev 0.8.0",
  "zbus",
@@ -177,13 +176,11 @@ dependencies = [
  "config-traits",
  "dirs",
  "env_logger",
+ "nanoserde",
  "rog_anime",
  "rog_aura",
  "rog_dbus",
  "rog_platform",
- "ron",
- "serde",
- "serde_derive",
  "smol",
  "zbus",
 ]
@@ -849,8 +846,7 @@ version = "6.0.0"
 dependencies = [
  "cargo-husky",
  "log",
- "ron",
- "serde",
+ "nanoserde",
 ]
 
 [[package]]
@@ -2717,6 +2713,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "nanoserde"
+version = "0.1.37"
+source = "git+https://github.com/flukejones/nanoserde#6e5c13bc97a89554f2e95dd82e9a87c50f6ce819"
+dependencies = [
+ "nanoserde-derive",
+]
+
+[[package]]
+name = "nanoserde-derive"
+version = "0.1.22"
+source = "git+https://github.com/flukejones/nanoserde#6e5c13bc97a89554f2e95dd82e9a87c50f6ce819"
+
+[[package]]
 name = "ndk"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3387,6 +3396,7 @@ dependencies = [
  "env_logger",
  "gumdrop",
  "log",
+ "nanoserde",
  "nix 0.28.0",
  "notify-rust",
  "rog_anime",
@@ -3394,8 +3404,6 @@ dependencies = [
  "rog_dbus",
  "rog_platform",
  "rog_profiles",
- "serde",
- "serde_derive",
  "slint",
  "slint-build",
  "supergfxctl",
@@ -3414,10 +3422,9 @@ dependencies = [
  "gif 0.12.0",
  "glam",
  "log",
+ "nanoserde",
  "pix",
  "png_pong",
- "serde",
- "serde_derive",
  "typeshare",
  "zbus",
 ]
@@ -3429,9 +3436,8 @@ dependencies = [
  "cargo-husky",
  "dmi_id",
  "log",
+ "nanoserde",
  "ron",
- "serde",
- "serde_derive",
  "typeshare",
  "zbus",
 ]
@@ -3458,9 +3464,9 @@ dependencies = [
  "concat-idents",
  "inotify",
  "log",
+ "nanoserde",
  "rog_aura",
  "rusb",
- "serde",
  "typeshare",
  "udev 0.8.0",
  "zbus",
@@ -3472,9 +3478,8 @@ version = "6.0.0"
 dependencies = [
  "cargo-husky",
  "log",
+ "nanoserde",
  "rog_platform",
- "serde",
- "serde_derive",
  "typeshare",
  "udev 0.8.0",
  "zbus",
@@ -3496,8 +3501,7 @@ version = "6.0.0"
 dependencies = [
  "cargo-husky",
  "dmi_id",
- "serde",
- "serde_derive",
+ "nanoserde",
  "typeshare",
  "zbus",
 ]

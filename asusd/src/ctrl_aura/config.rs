@@ -2,21 +2,21 @@ use std::collections::BTreeMap;
 
 use config_traits::{StdConfig, StdConfigLoad};
 use log::{debug, info, warn};
+use nanoserde::{DeRon, SerRon};
 use rog_aura::aura_detection::LedSupportData;
 use rog_aura::keyboard::LaptopAuraPower;
 use rog_aura::{
     AuraDeviceType, AuraEffect, AuraModeNum, AuraZone, Direction, LedBrightness, Speed, GRADIENT,
 };
-use serde_derive::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
-// #[serde(default)]
+#[derive(DeRon, SerRon, Default, Debug, Clone)]
+// #[nserde(default)]
 pub struct AuraConfig {
     pub config_name: String,
     pub brightness: LedBrightness,
     pub current_mode: AuraModeNum,
     pub builtins: BTreeMap<AuraModeNum, AuraEffect>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub multizone: Option<BTreeMap<AuraModeNum, Vec<AuraEffect>>>,
     pub multizone_on: bool,
     pub enabled: LaptopAuraPower,

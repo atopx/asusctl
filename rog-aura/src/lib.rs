@@ -5,7 +5,7 @@
 
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::{OwnedValue, Type, Value};
@@ -66,7 +66,7 @@ pub const GRADIENT: [Colour; 7] = [RED, VIOLET, BLUE, TEAL, GREEN, YELLOW, ORANG
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, DeRon, SerRon)]
 pub enum AuraDeviceType {
     /// Most new laptops
     #[default]
@@ -113,7 +113,7 @@ impl From<&str> for AuraDeviceType {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "u")
 )]
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Default, Copy, Clone)]
+#[derive(DeRon, SerRon, PartialEq, Eq, Hash, Debug, Default, Copy, Clone)]
 pub enum PowerZones {
     /// The logo on some laptop lids
     Logo = 0,

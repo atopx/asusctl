@@ -4,7 +4,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use log::info;
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::{OwnedValue, Type, Value};
@@ -31,7 +31,7 @@ pub const USB_PREFIX3: [u8; 7] = [0x5e, 0xc0, 0x02, 0xe7, 0x04, 0x73, 0x02];
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
 #[typeshare]
-#[derive(Default, Deserialize, PartialEq, Eq, Clone, Copy, Serialize, Debug)]
+#[derive(Default, PartialEq, Eq, Clone, Copy, DeRon, SerRon, Debug)]
 pub struct Animations {
     pub boot: AnimBooting,
     pub awake: AnimAwake,
@@ -43,7 +43,7 @@ pub struct Animations {
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type))]
 #[typeshare]
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub struct DeviceState {
     pub display_enabled: bool,
     pub display_brightness: Brightness,
@@ -57,7 +57,7 @@ pub struct DeviceState {
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type), zvariant(signature = "s"))]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub enum AnimeType {
     GA401,
     GA402,
@@ -109,7 +109,7 @@ impl AnimeType {
 /// The minimal serializable data that can be transferred over wire types.
 /// Other data structures in `rog_anime` will convert to this.
 #[cfg_attr(feature = "dbus", derive(Type))]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct AnimeDataBuffer {
     data: Vec<u8>,
     anime: AnimeType,
@@ -203,7 +203,7 @@ pub fn run_animation(frames: &AnimeGif, callback: &dyn Fn(AnimeDataBuffer) -> Re
         run_time += Duration::from_millis(250);
         timed = true;
     } else if let AnimTime::Time(time) = frames.duration() {
-        run_time = time;
+        run_time = Duration::from_millis(time);
         timed = true;
     }
 

@@ -1,11 +1,11 @@
 use config_traits::{StdConfig, StdConfigLoad};
+use nanoserde::{DeRon, SerRon};
 use rog_slash::{DeviceState, SlashMode};
-use serde_derive::{Deserialize, Serialize};
 
 const CONFIG_FILE: &str = "slash.ron";
 
 /// Config for base system actions for the anime display
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(DeRon, SerRon, Debug)]
 pub struct SlashConfig {
     pub slash_enabled: bool,
     pub slash_brightness: u8,

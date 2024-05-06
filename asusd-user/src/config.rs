@@ -2,11 +2,11 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use config_traits::{StdConfig, StdConfigLoad};
+use nanoserde::{DeRon, SerRon};
 use rog_anime::{ActionLoader, AnimTime, AnimeType, Fade, Sequences as AnimeSequences, Vec2};
 use rog_aura::effects::{AdvancedEffects as AuraSequences, Breathe, DoomFlicker, Effect, Static};
 use rog_aura::keyboard::LedCode;
 use rog_aura::{Colour, Speed};
-use serde_derive::{Deserialize, Serialize};
 
 use crate::error::Error;
 
@@ -18,7 +18,7 @@ fn root_conf_dir() -> PathBuf {
     dir
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, DeRon, SerRon)]
 pub struct ConfigAnime {
     pub name: String,
     pub anime: Vec<ActionLoader>,
@@ -118,7 +118,7 @@ impl StdConfig for ConfigAnime {
 
 impl StdConfigLoad for ConfigAnime {}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, DeRon, SerRon)]
 pub struct ConfigAura {
     pub name: String,
     pub aura: AuraSequences,
@@ -203,8 +203,8 @@ impl StdConfig for ConfigAura {
 
 impl StdConfigLoad for ConfigAura {}
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(default)]
+#[derive(Debug, Default, DeRon, SerRon)]
+#[nserde(default)]
 pub struct ConfigBase {
     /// Name of active anime config file in the user config directory
     pub active_anime: Option<String>,

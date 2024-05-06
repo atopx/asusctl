@@ -17,9 +17,7 @@ dirs.workspace = true
 smol.workspace = true
 
 # serialisation
-serde.workspace = true
-serde_derive.workspace = true
-ron.workspace = true
+nanoserde.workspace = true
 
 rog_anime = { path = "../rog-anime" }
 rog_aura = { path = "../rog-aura" }

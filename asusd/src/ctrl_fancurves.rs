@@ -4,11 +4,11 @@ use std::sync::Arc;
 use config_traits::{StdConfig, StdConfigLoad};
 use futures_lite::StreamExt;
 use log::{debug, error, info, warn};
+use nanoserde::{DeRon, SerRon};
 use rog_platform::platform::{RogPlatform, ThrottlePolicy};
 use rog_profiles::error::ProfileError;
 use rog_profiles::fan_curve_set::CurveData;
 use rog_profiles::{find_fan_curve_node, FanCurvePU, FanCurveProfiles};
-use serde_derive::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use zbus::{interface, Connection, SignalContext};
 
@@ -18,10 +18,10 @@ use crate::{CtrlTask, CONFIG_PATH_BASE};
 pub const FAN_CURVE_ZBUS_NAME: &str = "FanCurves";
 pub const FAN_CURVE_ZBUS_PATH: &str = "/org/asuslinux";
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(DeRon, SerRon, Debug, Default)]
 pub struct FanCurveConfig {
     pub profiles: FanCurveProfiles,
-    #[serde(skip)]
+    #[nserde(skip)]
     pub current: u8,
 }
 

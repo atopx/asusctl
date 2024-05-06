@@ -1,62 +1,73 @@
 use std::convert::TryFrom;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use glam::Vec2;
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::error::Result;
 use crate::{AnimTime, AnimeDataBuffer, AnimeDiagonal, AnimeGif, AnimeImage, AnimeType};
 
+#[derive(Debug, Default, Clone, DeRon, SerRon)]
+pub struct MyVec2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl From<&MyVec2> for Vec2 {
+    fn from(my: &MyVec2) -> Self {
+        Vec2 { x: my.x, y: my.y }
+    }
+}
+
 /// All the possible `AniMe` actions that can be used. This enum is intended to
 /// be a helper for loading up `ActionData`.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub enum ActionLoader {
     /// Full gif sequence. Immutable.
     AsusAnimation {
-        file: PathBuf,
+        file: String,
         time: AnimTime,
         brightness: f32,
     },
     /// Image designed to be pixel perfect using the slanted template
     AsusImage {
-        file: PathBuf,
+        file: String,
         time: AnimTime,
         brightness: f32,
     },
     /// Animated gif. If the file is a png a static gif is created using the
     /// `time` properties
     ImageAnimation {
-        file: PathBuf,
+        file: String,
         scale: f32,
         angle: f32,
-        translation: Vec2,
+        translation: MyVec2,
         time: AnimTime,
         brightness: f32,
     },
     Image {
-        file: PathBuf,
+        file: String,
         scale: f32,
         angle: f32,
-        translation: Vec2,
+        translation: MyVec2,
         time: AnimTime,
         brightness: f32,
     },
     /// A pause to be used between sequences
-    Pause(Duration),
+    Pause(u64),
 }
 
 /// All the possible `AniMe` actions that can be used. The enum is intended to
 /// be used in a array allowing the user to cycle through a series of actions.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub enum ActionData {
     /// Full gif sequence. Immutable.
     Animation(AnimeGif),
     /// Basic image, can have properties changed and image updated via those
     /// properties
     Image(Box<AnimeDataBuffer>),
-    /// A pause to be used between sequences
-    Pause(Duration),
+    /// A pause in milliseconds to be used between sequences
+    Pause(u64),
     /// Placeholder
     AudioEq,
     /// Placeholder
@@ -75,7 +86,7 @@ impl ActionData {
                 time,
                 brightness,
             } => ActionData::Animation(AnimeGif::from_diagonal_gif(
-                file,
+                &PathBuf::from(&file),
                 *time,
                 *brightness,
                 anime_type,
@@ -86,12 +97,13 @@ impl ActionData {
                 brightness,
             } => match time {
                 AnimTime::Infinite => {
-                    let image = AnimeDiagonal::from_png(file, None, *brightness, anime_type)?;
+                    let file = PathBuf::from(&file);
+                    let image = AnimeDiagonal::from_png(&file, None, *brightness, anime_type)?;
                     let data = image.into_data_buffer(anime_type)?;
                     ActionData::Image(Box::new(data))
                 }
                 _ => ActionData::Animation(AnimeGif::from_diagonal_png(
-                    file,
+                    &PathBuf::from(&file),
                     anime_type,
                     *time,
                     *brightness,
@@ -105,13 +117,14 @@ impl ActionData {
                 time,
                 brightness,
             } => {
+                let file = PathBuf::from(&file);
                 if let Some(ext) = file.extension() {
                     if ext.to_string_lossy().to_lowercase() == "png" {
                         return Ok(ActionData::Animation(AnimeGif::from_png(
-                            file,
+                            &file,
                             *scale,
                             *angle,
-                            *translation,
+                            translation.into(),
                             *time,
                             *brightness,
                             anime_type,
@@ -119,10 +132,10 @@ impl ActionData {
                     }
                 }
                 ActionData::Animation(AnimeGif::from_gif(
-                    file,
+                    &file,
                     *scale,
                     *angle,
-                    *translation,
+                    translation.into(),
                     *time,
                     *brightness,
                     anime_type,
@@ -140,10 +153,10 @@ impl ActionData {
                     AnimTime::Infinite => {
                         // If no time then create a plain static image
                         let image = AnimeImage::from_png(
-                            file,
+                            &PathBuf::from(&file),
                             *scale,
                             *angle,
-                            *translation,
+                            translation.into(),
                             *brightness,
                             anime_type,
                         )?;
@@ -151,10 +164,10 @@ impl ActionData {
                         ActionData::Image(Box::new(data))
                     }
                     _ => ActionData::Animation(AnimeGif::from_png(
-                        file,
+                        &PathBuf::from(&file),
                         *scale,
                         *angle,
-                        *translation,
+                        translation.into(),
                         *time,
                         *brightness,
                         anime_type,
@@ -168,7 +181,7 @@ impl ActionData {
 }
 
 /// An optimised precomputed set of actions that the user can cycle through
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, DeRon, SerRon)]
 pub struct Sequences(Vec<ActionData>, AnimeType);
 
 impl Sequences {

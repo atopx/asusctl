@@ -11,7 +11,7 @@
 use std::str::FromStr;
 
 use dmi_id::DMIID;
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::{OwnedValue, Type, Value};
@@ -30,7 +30,7 @@ pub const PROD_ID: u16 = 0x193b;
     zvariant(signature = "u")
 )]
 #[typeshare]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 /// Base LED brightness of the display
 pub enum Brightness {
     Off = 0,
@@ -83,7 +83,7 @@ impl From<Brightness> for i32 {
     zvariant(signature = "s")
 )]
 #[typeshare]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum AnimBooting {
     #[default]
     GlitchConstruction = 0,
@@ -124,7 +124,7 @@ impl From<AnimBooting> for i32 {
     zvariant(signature = "s")
 )]
 #[typeshare]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum AnimAwake {
     #[default]
     BinaryBannerScroll = 0,
@@ -165,7 +165,7 @@ impl From<AnimAwake> for i32 {
     zvariant(signature = "s")
 )]
 #[typeshare]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum AnimSleeping {
     #[default]
     BannerSwipe = 0,
@@ -206,7 +206,7 @@ impl From<AnimSleeping> for i32 {
     zvariant(signature = "s")
 )]
 #[typeshare]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum AnimShutdown {
     #[default]
     GlitchOut = 0,

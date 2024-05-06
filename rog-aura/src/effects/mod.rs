@@ -1,4 +1,4 @@
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 mod doom;
 pub use doom::*;
@@ -64,7 +64,7 @@ pub(crate) trait EffectState {
     fn set_led(&mut self, address: LedCode);
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, DeRon, SerRon, Default)]
 pub struct AdvancedEffects {
     effects: Vec<Effect>,
     zoned: bool,
@@ -181,7 +181,7 @@ macro_rules! effect_impl {
 /// update states and get colours
 ///
 /// Every effect is added here to quickly and easily match within `Effect`
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub enum Effect {
     Static(Static),
     Breathe(Breathe),
@@ -199,6 +199,8 @@ effect_impl!(Static, Breathe, DoomFlicker, DoomLightFlash);
 
 #[cfg(test)]
 mod tests {
+    use nanoserde::SerRon;
+
     use crate::effects::{AdvancedEffects, Breathe, DoomFlicker, Effect, Static};
     use crate::keyboard::{KeyLayout, LedCode};
     use crate::{Colour, Speed};
@@ -244,8 +246,7 @@ mod tests {
             Speed::Med,
         )));
 
-        let s =
-            ron::ser::to_string_pretty(&seq, ron::ser::PrettyConfig::new().depth_limit(4)).unwrap();
+        let s = SerRon::serialize_ron(&seq);
         println!("{s}");
 
         seq.next_state(&layout);

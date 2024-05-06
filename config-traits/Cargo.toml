@@ -9,8 +9,7 @@ homepage.workspace = true
 edition.workspace = true
 
 [dependencies]
-serde.workspace = true
-ron.workspace = true
+nanoserde.workspace = true
 
 log.workspace = true
 

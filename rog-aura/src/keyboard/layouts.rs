@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::slice::Iter;
 
 use log::warn;
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::aura_detection::LedSupportData;
 use crate::error::Error;
@@ -18,7 +18,7 @@ use crate::{AuraModeNum, AuraZone};
 /// a row so that it doesn't appear to *jump* across a gap
 ///
 /// w=1.0, h=1.0 should be considered the size of a typical key like 'A'
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, DeRon, SerRon, Clone)]
 pub enum KeyShape {
     Led {
         width: f32,
@@ -88,7 +88,7 @@ impl KeyShape {
 /// Every row is considered to start a x=0, with the first row being y=0,
 /// and following rows starting after the previous `row_y + pad_top` and
 /// `row_x + pad_left`
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, DeRon, SerRon, Clone)]
 pub struct KeyRow {
     pad_left: f32,
     pad_top: f32,
@@ -96,7 +96,7 @@ pub struct KeyRow {
     /// packets
     row: Vec<(LedCode, String)>,
     /// The final data structure merged key_shapes and rows
-    #[serde(skip)]
+    #[nserde(skip)]
     built_row: Vec<(LedCode, KeyShape)>,
 }
 
@@ -163,7 +163,7 @@ impl KeyRow {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, DeRon, SerRon, Clone)]
 pub struct KeyLayout {
     /// Localization of this keyboard layout
     locale: String,
@@ -173,18 +173,18 @@ pub struct KeyLayout {
     key_rows: Vec<KeyRow>,
     /// Should be copied from the `LaptopLedData` as laptops may have the same
     /// layout, but different EC features
-    #[serde(skip)]
+    #[nserde(skip)]
     basic_modes: Vec<AuraModeNum>,
     /// Should be copied from the `LaptopLedData` as laptops may have the same
     /// layout, but different EC features
-    #[serde(skip)]
+    #[nserde(skip)]
     basic_zones: Vec<AuraZone>,
     /// Paired with the key selection in UI. Determines if individual keys are
     /// selectable, zones, or single zone.
     ///
     /// Should be copied from the `LaptopLedData` as laptops may have the same
     /// layout, but different EC features.
-    #[serde(skip)]
+    #[nserde(skip)]
     advanced_type: AdvancedAuraType,
 }
 
@@ -198,7 +198,7 @@ impl KeyLayout {
                 std::io::ErrorKind::InvalidData.into(),
             ))
         } else {
-            let mut data = ron::from_str::<Self>(&buf)?;
+            let mut data: Self = DeRon::deserialize_ron(&buf)?;
 
             let mut unused = HashSet::new();
             for k in data.key_shapes.keys() {
@@ -458,6 +458,8 @@ mod tests {
     use std::io::Read;
     use std::path::PathBuf;
 
+    use nanoserde::DeRon;
+
     use crate::aura_detection::LedSupportFile;
     use crate::keyboard::KeyLayout;
 
@@ -478,7 +480,7 @@ mod tests {
         {
             let mut buf = std::fs::read_to_string(p.unwrap().path()).unwrap();
 
-            let data: KeyLayout = ron::from_str(&buf).unwrap();
+            let data: KeyLayout = DeRon::deserialize_ron(&buf).unwrap();
 
             let mut unused = HashSet::new();
             for k in data.key_shapes.keys() {
@@ -524,7 +526,7 @@ mod tests {
         data_path.push("aura_support.ron");
 
         let mut buf = std::fs::read_to_string(&data_path).unwrap();
-        let data: LedSupportFile = ron::from_str(&buf).unwrap();
+        let data = LedSupportFile::deserialize_ron(&buf).unwrap();
 
         data_path.pop();
         data_path.push("layouts");
@@ -558,7 +560,7 @@ mod tests {
                     config.device_name
                 )
             }
-            if let Err(e) = ron::from_str::<KeyLayout>(&buf) {
+            if let Err(e) = LedSupportFile::deserialize_ron(&buf) {
                 panic!("Error checking {data_path:?} : {e:?}")
             }
         }

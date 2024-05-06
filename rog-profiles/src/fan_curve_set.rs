@@ -1,5 +1,5 @@
 use log::trace;
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 use udev::Device;
 #[cfg(feature = "dbus")]
@@ -33,7 +33,7 @@ pub(crate) fn temp_str(fan: char, index: usize) -> String {
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type))]
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[derive(DeRon, SerRon, Default, Debug, Clone)]
 pub struct CurveData {
     pub fan: FanCurvePU,
     pub pwm: [u8; 8],

@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr};
 
 use log::warn;
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::{OwnedValue, Type, Value};
@@ -18,7 +18,7 @@ use crate::{AuraDeviceType, PowerZones};
 /// - Tuf, the struct is 1 zone and 3 states
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, DeRon, SerRon)]
 pub struct AuraPowerState {
     pub zone: PowerZones,
     pub boot: bool,
@@ -140,7 +140,7 @@ impl AuraPowerState {
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, DeRon, SerRon)]
 pub struct LaptopAuraPower {
     pub states: Vec<AuraPowerState>,
 }

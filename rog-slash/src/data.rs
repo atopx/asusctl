@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::Type;
@@ -9,7 +9,7 @@ use zbus::zvariant::{OwnedValue, Value};
 
 use crate::error::SlashError;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub enum SlashType {
     GA403,
     Unknown,
@@ -29,7 +29,7 @@ impl FromStr for SlashType {
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum SlashMode {
     Bounce = 0x10,
     Slash = 0x12,
@@ -122,7 +122,7 @@ impl SlashMode {
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type))]
 #[typeshare]
-#[derive(Debug, PartialEq, Eq, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub struct DeviceState {
     pub slash_enabled: bool,
     pub slash_brightness: u8,

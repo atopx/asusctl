@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use super::EffectState;
 use crate::keyboard::{KeyLayout, LedCode};
 use crate::{effect_state_impl, Colour, Speed};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct Breathe {
     led: LedCode,
     /// The starting colour
@@ -14,11 +14,11 @@ pub struct Breathe {
     /// The speed at which to cycle between the colours
     speed: Speed,
     /// Temporary data to help keep state
-    #[serde(skip)]
+    #[nserde(skip)]
     colour: Colour,
-    #[serde(skip)]
+    #[nserde(skip)]
     count_flipped: bool,
-    #[serde(skip)]
+    #[nserde(skip)]
     use_colour1: bool,
 }
 

@@ -1,18 +1,18 @@
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::effects::{p_random, EffectState};
 use crate::keyboard::{KeyLayout, LedCode};
 use crate::{effect_state_impl, Colour};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct DoomFlicker {
     led: LedCode,
     start_colour: Colour,
     max_percentage: u8,
     min_percentage: u8,
-    #[serde(skip)]
+    #[nserde(skip)]
     count: u8,
-    #[serde(skip)]
+    #[nserde(skip)]
     colour: Colour,
 }
 
@@ -83,19 +83,19 @@ impl EffectState for DoomFlicker {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct DoomLightFlash {
     led: LedCode,
     start_colour: Colour,
     max_percentage: u8,
     min_percentage: u8,
-    #[serde(skip)]
+    #[nserde(skip)]
     max_time: i32,
-    #[serde(skip)]
+    #[nserde(skip)]
     min_time: i32,
-    #[serde(skip)]
+    #[nserde(skip)]
     count: u8,
-    #[serde(skip)]
+    #[nserde(skip)]
     colour: Colour,
 }
 

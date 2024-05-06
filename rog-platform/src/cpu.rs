@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use log::{info, warn};
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 use zbus::zvariant::{OwnedValue, Type, Value};
 
@@ -149,9 +149,7 @@ impl CPUControl {
 
 #[typeshare]
 #[repr(u8)]
-#[derive(
-    Deserialize, Serialize, Type, Value, OwnedValue, Debug, PartialEq, PartialOrd, Clone, Copy,
-)]
+#[derive(DeRon, SerRon, Type, Value, OwnedValue, Debug, PartialEq, PartialOrd, Clone, Copy)]
 #[zvariant(signature = "s")]
 pub enum CPUGovernor {
     Performance = 0,
@@ -182,17 +180,7 @@ impl From<CPUGovernor> for String {
 #[typeshare]
 #[repr(u32)]
 #[derive(
-    Deserialize,
-    Serialize,
-    Type,
-    Value,
-    OwnedValue,
-    Default,
-    Debug,
-    PartialEq,
-    PartialOrd,
-    Clone,
-    Copy,
+    DeRon, SerRon, Type, Value, OwnedValue, Default, Debug, PartialEq, PartialOrd, Clone, Copy,
 )]
 #[zvariant(signature = "u")]
 pub enum CPUEPP {

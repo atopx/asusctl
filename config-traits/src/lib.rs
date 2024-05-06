@@ -10,16 +10,13 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use log::{error, warn};
-pub use ron;
-use ron::ser::PrettyConfig;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use nanoserde::{DeRon, SerRon};
 
 /// Config file helper traits. Only `new()` and `file_name()` are required to be
 /// implemented, the rest are intended to be free methods.
 pub trait StdConfig
 where
-    Self: Serialize + DeserializeOwned,
+    Self: SerRon + DeRon,
 {
     /// Taking over the standard `new()` to ensure things can be generic
     fn new() -> Self;
@@ -99,7 +96,7 @@ where
         if let Ok(data) = fs::read_to_string(self.file_path()) {
             if data.is_empty() {
                 warn!("File is empty {:?}", self.file_path());
-            } else if let Ok(data) = ron::from_str(&data) {
+            } else if let Ok(data) = DeRon::deserialize_ron(&data) {
                 *self = data;
             } else {
                 warn!("Could not deserialise {:?}", self.file_path());
@@ -112,7 +109,7 @@ where
         if let Ok(data) = fs::read_to_string(self.file_path()) {
             if data.is_empty() {
                 warn!("File is empty {:?}", self.file_path());
-            } else if let Ok(data) = ron::from_str(&data) {
+            } else if let Ok(data) = DeRon::deserialize_ron(&data) {
                 return Some(data);
             } else {
                 warn!("Could not deserialise {:?}", self.file_path());
@@ -133,13 +130,7 @@ where
                 return;
             }
         };
-        let ron = match ron::ser::to_string_pretty(&self, PrettyConfig::new().depth_limit(4)) {
-            Ok(data) => data,
-            Err(e) => {
-                error!("Parse {:?} to RON failed, error: {e}", self.file_path());
-                return;
-            }
-        };
+        let ron = SerRon::serialize_ron(self);
         file.write_all(ron.as_bytes())
             .unwrap_or_else(|err| error!("Could not write config: {}", err));
     }
@@ -172,16 +163,16 @@ macro_rules! std_config_load {
         /// # Example
         /// ```rust
         /// use std::path::PathBuf;
-        /// use serde::{Deserialize, Serialize};
+        /// use nanoserde::{DeRon, SerRon};
         /// use config_traits::{StdConfig, StdConfigLoad2};
         ///
-        /// #[derive(Deserialize, Serialize, Debug)]
+        /// #[derive(DeRon, SerRon, Debug)]
         /// struct FanCurveConfigOld {}
         ///
-        /// #[derive(Deserialize, Serialize, Debug)]
+        /// #[derive(DeRon, SerRon, Debug)]
         /// struct FanCurveConfigOlder {}
         ///
-        /// #[derive(Deserialize, Serialize, Debug)]
+        /// #[derive(DeRon, SerRon, Debug)]
         /// struct FanCurveConfig {}
         ///
         /// impl From<FanCurveConfigOld> for FanCurveConfig {
@@ -207,19 +198,19 @@ macro_rules! std_config_load {
         /// new one created
         pub trait $trait_name<$($generic),*>
         where
-            Self: $crate::StdConfig +std::fmt::Debug + DeserializeOwned + Serialize,
-            $($generic: DeserializeOwned + Into<Self>),*
+            Self: $crate::StdConfig +std::fmt::Debug + DeRon + SerRon,
+            $($generic: DeRon + Into<Self>),*
         {
             fn load(mut self) -> Self {
                 let mut file = self.file_open();
                 let mut buf = String::new();
                 if let Ok(read_len) = file.read_to_string(&mut buf) {
                     if read_len != 0 {
-                        if let Ok(data) = ron::from_str(&buf) {
+                        if let Ok(data) = DeRon::deserialize_ron(&buf) {
                             self = data;
                             log::info!("Parsed RON for {:?}", std::any::type_name::<Self>());
-                        }  $(else if let Ok(data) = ron::from_str::<$generic>(&buf) {
-                            self = data.into();
+                        }  $(else if let Ok(data) = DeRon::deserialize_ron(&buf) {
+                            self = Self::from(data);
                             log::info!("New version failed, trying previous: Parsed RON for {:?}", std::any::type_name::<$generic>());
                         })* else {
                             self.rename_file_old();
@@ -246,12 +237,14 @@ std_config_load!(StdConfigLoad4: T1, T2, T3, T4);
 mod tests {
     use std::path::PathBuf;
 
+    use nanoserde::{DeRon, SerRon};
+
     #[test]
     fn check_macro_from_1() {
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Test {}
 
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Old1 {}
 
         impl crate::StdConfig for Test {
@@ -279,16 +272,16 @@ mod tests {
 
     #[test]
     fn check_macro_from_3() {
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Test {}
 
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Old1 {}
 
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Old2 {}
 
-        #[derive(serde::Deserialize, serde::Serialize, Debug)]
+        #[derive(DeRon, SerRon, Debug)]
         struct Old3 {}
 
         impl crate::StdConfig for Test {

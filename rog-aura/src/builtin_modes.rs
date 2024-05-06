@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::{OwnedValue, Type, Value};
@@ -10,7 +10,7 @@ use crate::error::Error;
 use crate::LED_MSG_LEN;
 
 #[typeshare]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 #[cfg_attr(
     feature = "dbus",
     derive(Type, Value, OwnedValue),
@@ -81,7 +81,7 @@ impl From<i32> for LedBrightness {
 
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, DeRon, SerRon)]
 pub struct Colour {
     pub r: u8,
     pub g: u8,
@@ -146,7 +146,7 @@ impl From<Colour> for [u8; 3] {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "s")
 )]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub enum Speed {
     Low = 0xe1,
     #[default]
@@ -206,7 +206,7 @@ impl From<Speed> for u8 {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "s")
 )]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub enum Direction {
     #[default]
     Right = 0,
@@ -254,9 +254,7 @@ impl From<Direction> for i32 {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "u")
 )]
-#[derive(
-    Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, Deserialize, Serialize,
-)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy, DeRon, SerRon)]
 pub enum AuraModeNum {
     #[default]
     Static = 0,
@@ -366,7 +364,7 @@ impl From<AuraEffect> for AuraModeNum {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "u")
 )]
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, DeRon, SerRon)]
 pub enum AuraZone {
     /// Used if keyboard has no zones, or if setting all
     #[default]
@@ -434,7 +432,7 @@ impl From<AuraZone> for i32 {
 /// ```
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type, Value, OwnedValue))]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct AuraEffect {
     /// The effect type
     pub mode: AuraModeNum,

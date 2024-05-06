@@ -10,11 +10,11 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use log::{error, info, warn};
+use nanoserde::{DeRon, SerRon};
 use notify_rust::{Hint, Notification, NotificationHandle, Urgency};
 use rog_dbus::zbus_platform::PlatformProxy;
 use rog_platform::platform::GpuMode;
 use rog_platform::power::AsusPower;
-use serde::{Deserialize, Serialize};
 use supergfxctl::actions::UserActionRequired as GfxUserAction;
 use supergfxctl::pci_device::{GfxMode, GfxPower};
 use supergfxctl::zbus_proxy::DaemonProxy as SuperProxy;
@@ -26,8 +26,8 @@ use crate::error::Result;
 
 const NOTIF_HEADER: &str = "ROG Control";
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(default)]
+#[derive(Debug, Clone, DeRon, SerRon)]
+#[nserde(default)]
 pub struct EnabledNotifications {
     pub enabled: bool,
     pub receive_notify_gfx: bool,

@@ -1,14 +1,14 @@
 use std::fs::create_dir;
 
 use config_traits::{StdConfig, StdConfigLoad1};
-use serde_derive::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use crate::notify::EnabledNotifications;
 
 const CFG_DIR: &str = "rog";
 const CFG_FILE_NAME: &str = "rog-control-center.cfg";
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct Config {
     pub run_in_background: bool,
     pub startup_in_background: bool,
@@ -68,7 +68,7 @@ impl StdConfig for Config {
 
 impl StdConfigLoad1<Config461> for Config {}
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct Config461 {
     pub run_in_background: bool,
     pub startup_in_background: bool,

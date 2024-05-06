@@ -1,16 +1,16 @@
 use std::time::Duration;
 
 use config_traits::{StdConfig, StdConfigLoad2};
+use nanoserde::{DeRon, SerRon};
 use rog_anime::error::AnimeError;
 use rog_anime::usb::Brightness;
 use rog_anime::{
-    ActionData, ActionLoader, AnimTime, Animations, AnimeType, DeviceState, Fade, Vec2,
+    ActionData, ActionLoader, AnimTime, Animations, AnimeType, DeviceState, Fade, MyVec2,
 };
-use serde_derive::{Deserialize, Serialize};
 
 const CONFIG_FILE: &str = "anime.ron";
 
-#[derive(Deserialize, Serialize)]
+#[derive(DeRon, SerRon)]
 pub struct AnimeConfigV460 {
     pub system: Vec<ActionLoader>,
     pub boot: Vec<ActionLoader>,
@@ -32,7 +32,7 @@ impl From<AnimeConfigV460> for AnimeConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(DeRon, SerRon, Debug)]
 pub struct AnimeConfigV472 {
     pub model_override: Option<AnimeType>,
     pub system: Vec<ActionLoader>,
@@ -64,7 +64,7 @@ impl From<AnimeConfigV472> for AnimeConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(DeRon, SerRon, Default)]
 pub struct AnimeConfigCached {
     pub system: Vec<ActionData>,
     pub boot: Vec<ActionData>,
@@ -106,7 +106,7 @@ impl AnimeConfigCached {
 }
 
 /// Config for base system actions for the anime display
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(DeRon, SerRon, Debug, Clone)]
 pub struct AnimeConfig {
     pub model_override: Option<AnimeType>,
     pub system: Vec<ActionLoader>,
@@ -195,7 +195,7 @@ impl AnimeConfig {
                 file: "/usr/share/asusd/anime/custom/sonic-run.gif".into(),
                 scale: 0.9,
                 angle: 0.65,
-                translation: Vec2::default(),
+                translation: MyVec2::default(),
                 brightness: 1.0,
                 time: AnimTime::Fade(Fade::new(
                     Duration::from_secs(2),
@@ -207,7 +207,7 @@ impl AnimeConfig {
                 file: "/usr/share/asusd/anime/custom/sonic-run.gif".into(),
                 scale: 0.9,
                 angle: 0.65,
-                translation: Vec2::default(),
+                translation: MyVec2::default(),
                 brightness: 1.0,
                 time: AnimTime::Fade(Fade::new(
                     Duration::from_secs(2),
@@ -219,7 +219,7 @@ impl AnimeConfig {
                 file: "/usr/share/asusd/anime/custom/sonic-wait.gif".into(),
                 scale: 0.9,
                 angle: 0.0,
-                translation: Vec2::new(3.0, 2.0),
+                translation: MyVec2 { x: 3.0, y: 2.0 },
                 brightness: 1.0,
                 time: AnimTime::Infinite,
             }],

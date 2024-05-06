@@ -4,8 +4,8 @@ pub mod fan_curve_set;
 use error::ProfileError;
 use fan_curve_set::CurveData;
 use log::debug;
+use nanoserde::{DeRon, SerRon};
 use rog_platform::platform::ThrottlePolicy;
-use serde_derive::{Deserialize, Serialize};
 use typeshare::typeshare;
 pub use udev::Device;
 #[cfg(feature = "dbus")]
@@ -39,7 +39,7 @@ pub fn find_fan_curve_node() -> Result<Device, ProfileError> {
     derive(Type, Value, OwnedValue),
     zvariant(signature = "s")
 )]
-#[derive(Deserialize, Serialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(DeRon, SerRon, Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum FanCurvePU {
     CPU = 0,
     GPU = 1,
@@ -107,7 +107,7 @@ impl Default for FanCurvePU {
 /// Main purpose of `FanCurves` is to enable restoring state on system boot
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type))]
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(DeRon, SerRon, Debug, Default)]
 pub struct FanCurveProfiles {
     pub balanced: Vec<CurveData>,
     pub performance: Vec<CurveData>,

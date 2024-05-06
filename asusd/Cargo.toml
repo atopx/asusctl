@@ -37,8 +37,7 @@ zbus.workspace = true
 logind-zbus.workspace = true
 
 # serialisation
-serde.workspace = true
-serde_derive.workspace = true
+nanoserde.workspace = true
 
 concat-idents.workspace = true
 

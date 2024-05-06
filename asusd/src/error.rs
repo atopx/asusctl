@@ -1,7 +1,6 @@
 use std::convert::From;
 use std::fmt;
 
-use config_traits::ron;
 use rog_anime::error::AnimeError;
 use rog_platform::error::PlatformError;
 use rog_profiles::error::ProfileError;
@@ -37,7 +36,7 @@ pub enum RogError {
     SystemdUnitAction(String),
     SystemdUnitWaitTimeout(String),
     Command(String, std::io::Error),
-    ParseRon(ron::Error),
+    ParseRon(nanoserde::DeRonErr),
 }
 
 impl fmt::Display for RogError {
@@ -130,8 +129,8 @@ impl From<std::io::Error> for RogError {
     }
 }
 
-impl From<ron::Error> for RogError {
-    fn from(err: ron::Error) -> Self {
+impl From<nanoserde::DeRonErr> for RogError {
+    fn from(err: nanoserde::DeRonErr) -> Self {
         RogError::ParseRon(err)
     }
 }

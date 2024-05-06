@@ -7,7 +7,7 @@ pub enum Error {
     ParseDirection,
     ParseBrightness,
     IoPath(String, std::io::Error),
-    Ron(ron::Error),
+    Ron(nanoserde::DeRonErr),
     RonParse(ron::error::SpannedError),
 }
 
@@ -28,8 +28,8 @@ impl fmt::Display for Error {
 
 impl error::Error for Error {}
 
-impl From<ron::Error> for Error {
-    fn from(e: ron::Error) -> Self {
+impl From<nanoserde::DeRonErr> for Error {
+    fn from(e: nanoserde::DeRonErr) -> Self {
         Self::Ron(e)
     }
 }

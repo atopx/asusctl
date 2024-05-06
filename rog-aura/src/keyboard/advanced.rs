@@ -1,5 +1,5 @@
 use log::warn;
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 use typeshare::typeshare;
 #[cfg(feature = "dbus")]
 use zbus::zvariant::Type;
@@ -10,7 +10,7 @@ use zbus::zvariant::Type;
 /// The `LedCode` used in setting up keyboard layouts is important because it
 /// determines the idexing for an RGB value in the final USB packets (for
 /// per-key addressable keyboards).
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, DeRon, SerRon)]
 pub enum LedCode {
     VolUp,
     VolDown,
@@ -206,7 +206,7 @@ pub type UsbPackets = Vec<Vec<u8>>;
 /// two rows.
 #[typeshare]
 #[cfg_attr(feature = "dbus", derive(Type))]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct LedUsbPackets {
     /// The packet data used to send data to the USB keyboard
     usb_packets: UsbPackets,

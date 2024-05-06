@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
+use nanoserde::{DeRon, SerRon};
 
 use super::EffectState;
 use crate::keyboard::{KeyLayout, LedCode};
 use crate::{effect_state_impl, Colour};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, DeRon, SerRon)]
 pub struct Static {
     led: LedCode,
     /// The starting colour

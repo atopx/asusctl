@@ -10,7 +10,7 @@ edition.workspace = true
 
 [dependencies]
 log.workspace = true
-serde.workspace = true
+nanoserde.workspace = true
 zbus.workspace = true
 concat-idents.workspace = true
 udev.workspace = true

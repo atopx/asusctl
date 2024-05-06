@@ -27,8 +27,7 @@ pix.workspace = true
 gif.workspace = true
 log.workspace = true
 
-serde.workspace = true
-serde_derive.workspace = true
+nanoserde.workspace = true
 
 glam.workspace = true
 typeshare.workspace = true

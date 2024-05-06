@@ -1,11 +1,11 @@
 use config_traits::{StdConfig, StdConfigLoad3};
+use nanoserde::{DeRon, SerRon};
 use rog_platform::cpu::CPUEPP;
 use rog_platform::platform::ThrottlePolicy;
-use serde_derive::{Deserialize, Serialize};
 
 const CONFIG_FILE: &str = "asusd.ron";
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, PartialOrd)]
+#[derive(DeRon, SerRon, Debug, PartialEq, PartialOrd)]
 pub struct Config {
     /// Save charge limit for restoring on boot/resume
     pub charge_control_end_threshold: u8,
@@ -31,28 +31,28 @@ pub struct Config {
     /// The energy_performance_preference for this throttle/platform profile
     pub throttle_performance_epp: CPUEPP,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub ppt_pl1_spl: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub ppt_pl2_sppt: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub ppt_fppt: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub ppt_apu_sppt: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub ppt_platform_sppt: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub nv_dynamic_boost: Option<u8>,
     /// Defaults to `None` if not supported
-    #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[nserde(skip_serializing_if = "Option::is_none", default)]
     pub nv_temp_target: Option<u8>,
     /// Temporary state for AC/Batt
-    #[serde(skip)]
+    #[nserde(skip)]
     pub last_power_plugged: u8,
 }
 
@@ -108,7 +108,7 @@ impl StdConfig for Config {
 
 impl StdConfigLoad3<Config472, Config506, Config507> for Config {}
 
-#[derive(Deserialize, Serialize)]
+#[derive(DeRon, SerRon)]
 pub struct Config507 {
     /// Save charge limit for restoring on boot
     pub charge_control_end_threshold: u8,
@@ -158,7 +158,7 @@ impl From<Config507> for Config {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(DeRon, SerRon)]
 pub struct Config506 {
     /// Save charge limit for restoring on boot
     pub charge_control_end_threshold: u8,
@@ -168,7 +168,7 @@ pub struct Config506 {
     pub ac_command: String,
     pub bat_command: String,
     /// Restored on boot as well as when power is plugged
-    #[serde(skip)]
+    #[nserde(skip)]
     pub platform_policy_to_restore: ThrottlePolicy,
     pub platform_policy_on_battery: ThrottlePolicy,
     pub platform_policy_on_ac: ThrottlePolicy,
@@ -210,7 +210,7 @@ impl From<Config506> for Config {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(DeRon, SerRon)]
 pub struct Config472 {
     /// Save charge limit for restoring on boot
     pub bat_charge_limit: u8,
