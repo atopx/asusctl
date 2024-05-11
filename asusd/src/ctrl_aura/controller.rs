@@ -35,12 +35,10 @@ impl LEDNode {
     pub fn set_brightness(&self, value: u8) -> Result<(), RogError> {
         match self {
             LEDNode::KbdLed(k) => k.set_brightness(value)?,
-            LEDNode::Rog(k, _) => {
-                if let Some(k) = k {
-                    k.set_brightness(value)?
-                } else {
-                    debug!("No brightness control found");
-                }
+            LEDNode::Rog(_, k) => {
+                // k.set_brightness(value)?
+                // u8 buf[] = { FEATURE_KBD_REPORT_ID, 0xba, 0xc5, 0xc4, 0x00 };
+                k.write_bytes(&[0x5a, 0xba, 0xc5, 0xc4, value]).unwrap();
             }
         }
         Ok(())
