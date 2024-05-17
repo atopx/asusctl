@@ -97,9 +97,14 @@ Works with KDE Plasma (without GTK packages)
     make
     sudo make install
 
-**Ubuntu, Popos (unsuported):**
+**Ubuntu, Popos:**
 
-instructions removed as outdated
+Works with Ubunut 24.04
+
+    sudo apt-get install -y cmake clang cargo libudev-dev libseat-dev libxkbcommon-dev libinput-dev libgbm-dev
+    sudo systemctl daemon-reload
+    make
+    sudo make install
 
 ## Installing
 
