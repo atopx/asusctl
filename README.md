@@ -1,6 +1,56 @@
+---------------
+
+# Ubuntu 24.04
+
+> https://asus-linux.org
+>
+> https://gitlab.com/asus-linux/asusctl
+
+### Setup 1
+```sh
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install -y \
+    cmake \
+    libasound2-dev \
+    libfreetype6-dev \
+    libexpat1-dev \
+    libxcb-composite0-dev \
+    libssl-dev \
+    libx11-dev \
+    build-essential \
+    libclang-dev \
+    libclang-dev \
+    libfontconfig-dev \
+    pkg-config \
+    libgdk-pixbuf2.0-0 \
+    libpangomm-1.4-dev \
+    libgtk-4-dev \
+    libudev-dev \
+    libsystemd-dev \
+    libseat-dev \
+    libinput-dev \
+    libgbm-dev
+```
+
+### Setup 2
+```sh
+wget https://github.com/atopx/asusctl/archive/refs/tags/6.0.11.tar.gz
+tar -zxvf 6.0.11.tar.gz && cd asusctl-6.0.11
+make && sudo make install
+```
+
+### Setup 3
+```sh
+sudo reboot
+```
+
+---------------
+
+
 # `asusctl` for ASUS ROG
 
-[Become a Patron!](https://www.patreon.com/bePatron?u=7602281) - [Asus Linux Website](https://asus-linux.org/)
+[Become a Patron!](https://www.patreon.com/bePatron?u=7602281) - [Asus Linux Website]()
 
 **WARNING:** Many features are developed in tandem with kernel patches. If you see a feature is missing you either need a patched kernel or latest release.
 
